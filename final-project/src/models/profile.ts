@@ -11,6 +11,7 @@ export class Profile extends Model<InferAttributes<Profile>, InferCreationAttrib
     declare DietaryPreference: string;
     declare Goals: string;
     declare Tier: string;
+    declare userId: number;
     declare createdAt?: Date;
     declare updatedAt?: Date;
 }
@@ -53,6 +54,10 @@ export function ProfileFactory(sequelize: Sequelize) {
         },
         Tier: {
             type: DataTypes.STRING,
+            allowNull: false
+        },
+        userId: {
+            type: DataTypes.INTEGER,
             allowNull: false
         },
         createdAt: {
