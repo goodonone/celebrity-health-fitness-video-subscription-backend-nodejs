@@ -1,0 +1,15 @@
+//we will need to work with frontend to render view
+//find stripe script from stripe website
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta name="description" content="This is the description"></meta>
+        <script src="https://checkout.stripe.com/checkout.js" defer></script>
+        <script scr="store.js" defer></script>
+        <script>
+            var stripePublicKey = '<%= stripePublicKey %>'
+        </script>
+    </head>
+</html>
