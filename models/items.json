@@ -2,20 +2,19 @@
 {
     "merchandise": [
         {
-            "id": 1,
+            "userId": 1,
             "name": "Item 1",
             "price": 3599,
-            //prices are in cents
             "imgName": "Workout Shorts 4.png"
         },
         {
-            "id": 2,
+            "userId": 2,
             "name": "Item 1",
             "price": 2599,
             "imgName": "Workout Shorts 4.png"
         },
         {
-            "id": 3,
+            "userId": 3,
             "name": "Item 1",
             "price": 5599,
             "imgName": "Workout Shorts 4.png"
@@ -23,4 +22,3 @@
     ]
 }
 
-//Where we need to store all of our store items to our server
