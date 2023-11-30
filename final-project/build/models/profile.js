@@ -46,6 +46,10 @@ function ProfileFactory(sequelize) {
             type: sequelize_1.DataTypes.STRING,
             allowNull: false
         },
+        userId: {
+            type: sequelize_1.DataTypes.INTEGER,
+            allowNull: false
+        },
         createdAt: {
             type: sequelize_1.DataTypes.DATE,
             allowNull: false,

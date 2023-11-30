@@ -2,26 +2,12 @@ import { RequestHandler } from "express";
 import {User} from "../models/user";
 import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../services/auth";
 
-export const getAllUsers: RequestHandler = async (req, res, next) => {
-    let users = await User.findAll();
-    res.status(200).json(users);
-}
-
-export const getUser: RequestHandler = async (req, res, next) => {
-    let userId = req.params.id;
-    let user = await User.findByPk(userId);
-
-    // let user: User | null = await verifyToken(req);
-    if (user) {
-        res.status(200).json(user);
-    }
-    else {
-        res.status(404).json({});
-    }
-}
 
 export const createUser: RequestHandler = async (req, res, next) => {
     let newUser: User = req.body;
+
+    console.log(newUser)
+
     if (newUser.username && newUser.password) {
         let hashedPassword = await hashPassword(newUser.password);
         newUser.password = hashedPassword;
@@ -56,5 +42,95 @@ export const loginUser: RequestHandler = async (req, res, next) => {
     }
     else {
         res.status(401).json('Invalid username');
+    }
+}
+
+export const getAllUsers: RequestHandler = async (req, res, next) => {
+    let users = await User.findAll();
+    res.status(200).json(users);
+}
+
+export const getUser: RequestHandler = async (req, res, next) => {
+    let user: User | null = await verifyToken(req);
+
+    if (!user){
+        return res.status(403).send(); //403 forbidden if user is not logged in 
+    }
+
+    let userId = req.params.id;
+    let userFound = await User.findByPk(userId);
+
+    // console.log(user)
+    // console.log(userId)
+
+
+    // let user: User | null = await verifyToken(req);
+    if (userFound && userFound.userId == user.userId) {
+        res.status(200).json(user);
+    }
+    else {
+        res.status(404).json({});
+    }
+}
+
+export const updateUser: RequestHandler = async (req, res, next) => {
+    let user: User | null = await verifyToken(req);
+
+   // console.log(user)
+
+    if (!user){
+        return res.status(403).send(); //403 forbidden if user is not logged in 
+    }
+    
+    let userId = req.params.id;
+    let newProfile: User = req.body;
+    
+    console.log(userId)
+    console.log(newProfile)
+
+    let userFound = await User.findByPk(userId);
+    
+    if (userFound && userFound.userId == newProfile.userId
+        && newProfile.firstName ) {
+            if (userFound.userId == user.userId ) 
+            {    
+                await User.update(newProfile, {
+                    where: { userId: userId }
+                });
+                res.status(200).json();
+            }
+            else{
+                res.status(403).send();
+            }
+    }
+    else {
+        res.status(400).json();
+    }
+}
+
+export const deleteUser: RequestHandler = async (req, res, next) => {
+    let user: User | null = await verifyToken(req);
+
+    if (!user){
+        return res.status(403).send(); //403 forbidden if user is not logged in 
+    }
+
+    let userId = req.params.id;
+    let userFound = await User.findByPk(userId);
+    
+    if (userFound) {
+        if (userFound.userId == user.userId ) 
+        {
+            await User.destroy({
+                    where: { userId: userId }
+            });
+            res.status(200).json();
+        }
+        else{
+            res.status(403).send();
+        }
+    }
+    else {
+        res.status(404).json();
     }
 }
