@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { Profile } from "../models/profile";
+import { Profile } from "../models/payment";
 import { verifyToken } from "../services/auth";
 import {User} from "../models/user";
 
