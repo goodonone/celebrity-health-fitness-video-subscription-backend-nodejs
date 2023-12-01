@@ -6,39 +6,43 @@ const auth_1 = require("../services/auth");
 const createUser = async (req, res, next) => {
     let newUser = req.body;
     console.log(newUser);
-    if (newUser.username && newUser.password) {
+    if (newUser.email && newUser.password) {
         let hashedPassword = await (0, auth_1.hashPassword)(newUser.password);
         newUser.password = hashedPassword;
         let created = await user_1.User.create(newUser);
         res.status(200).json({
-            username: created.username,
+            email: created.email,
             userId: created.userId
         });
     }
     else {
-        res.status(400).send('Username and password required');
+        res.status(400).send('Email and password required');
     }
 };
 exports.createUser = createUser;
 const loginUser = async (req, res, next) => {
-    // Look up user by their username
+    // Look up user by their email
     let existingUser = await user_1.User.findOne({
-        where: { username: req.body.username }
+        where: { email: req.body.email }
     });
+    console.log(existingUser);
     // If user exists, check that password matches
     if (existingUser) {
+        console.log(existingUser.password);
+        console.log(req.body.password);
         let passwordsMatch = await (0, auth_1.comparePasswords)(req.body.password, existingUser.password);
         // If passwords match, create a JWT
+        console.log(passwordsMatch);
         if (passwordsMatch) {
             let token = await (0, auth_1.signUserToken)(existingUser);
-            res.status(200).json({ "username": existingUser.username, "userId": existingUser.userId, token });
+            res.status(200).json({ "email": existingUser.email, "userId": existingUser.userId, token });
         }
         else {
             res.status(401).json('Invalid password');
         }
     }
     else {
-        res.status(401).json('Invalid username');
+        res.status(401).json('Invalid email');
     }
 };
 exports.loginUser = loginUser;
@@ -77,7 +81,7 @@ const updateUser = async (req, res, next) => {
     console.log(newProfile);
     let userFound = await user_1.User.findByPk(userId);
     if (userFound && userFound.userId == newProfile.userId
-        && newProfile.firstName) {
+        && newProfile.name) {
         if (userFound.userId == user.userId) {
             await user_1.User.update(newProfile, {
                 where: { userId: userId }
