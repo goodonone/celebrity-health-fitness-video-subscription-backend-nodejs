@@ -13,20 +13,39 @@ function UserFactory(sequelize) {
             primaryKey: true,
             allowNull: false
         },
-        username: {
+        email: {
             type: sequelize_1.DataTypes.STRING,
             allowNull: false
-            // unique: true
         },
         password: {
             type: sequelize_1.DataTypes.STRING,
             allowNull: false
         },
-        firstName: {
+        name: {
             type: sequelize_1.DataTypes.STRING,
             allowNull: false
         },
-        lastName: {
+        weight: {
+            type: sequelize_1.DataTypes.STRING,
+            allowNull: false,
+        },
+        height: {
+            type: sequelize_1.DataTypes.STRING,
+            allowNull: false
+        },
+        gender: {
+            type: sequelize_1.DataTypes.STRING,
+            allowNull: false
+        },
+        goals: {
+            type: sequelize_1.DataTypes.STRING,
+            allowNull: false
+        },
+        tier: {
+            type: sequelize_1.DataTypes.STRING,
+            allowNull: false,
+        },
+        dateOfBirth: {
             type: sequelize_1.DataTypes.STRING,
             allowNull: false,
         },
