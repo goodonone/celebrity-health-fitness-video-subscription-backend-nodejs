@@ -1,5 +1,5 @@
 import { Sequelize } from "sequelize";
-import { ProfileFactory, AssociateUserMessage } from "./profile";
+import { ProfileFactory, AssociateUserMessage } from "./payment";
 import { UserFactory } from "./user";
 
 const dbName = 'FitnessAPI';
