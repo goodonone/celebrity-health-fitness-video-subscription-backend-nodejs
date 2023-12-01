@@ -15,6 +15,7 @@ export class Profile extends Model<InferAttributes<Profile>, InferCreationAttrib
     declare createdAt?: Date;
     declare updatedAt?: Date;
 }
+// Stripe code needs to be added here
 
 export function ProfileFactory(sequelize: Sequelize) {
     Profile.init({
