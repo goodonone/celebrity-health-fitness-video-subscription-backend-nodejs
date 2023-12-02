@@ -5,56 +5,43 @@ export class Payment extends Model<InferAttributes<Payment>, InferCreationAttrib
     declare paymentId: number;
     declare userId: number;
     declare Tier: string;
+    declare paymentStatus: string;
+    declare membershipStatus: string;
+    declare paymentFrequency: string;
     declare membershipDate?: Date;//createdAt
     declare updatedAt?: Date;
 }
 // Stripe code needs to be added here
 
-export function ProfileFactory(sequelize: Sequelize) {
-    Profile.init({
-        profileId: {
+export function PaymentFactory(sequelize: Sequelize) {
+    Payment.init({
+        paymentId: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true,
-            allowNull: false
-        },
-        DateOfBirth: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        Gender: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        Weight: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        Height: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        BodyMassIndex: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        DietaryPreference: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        Goals: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        Tier: {
-            type: DataTypes.STRING,
             allowNull: false
         },
         userId: {
             type: DataTypes.INTEGER,
             allowNull: false
         },
-        createdAt: {
+        Tier: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        paymentStatus: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        membershipStatus: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        paymentFrequency: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        membershipDate: {
             type: DataTypes.DATE,
             allowNull: false,
             defaultValue: DataTypes.NOW,
@@ -66,7 +53,7 @@ export function ProfileFactory(sequelize: Sequelize) {
         }
     }, {
         freezeTableName: true,
-        tableName: 'profiles',
+        tableName: 'payments',
         sequelize
     });
 }
