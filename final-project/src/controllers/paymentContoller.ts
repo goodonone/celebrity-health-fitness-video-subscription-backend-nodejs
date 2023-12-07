@@ -67,29 +67,3 @@ export const updatePayment: RequestHandler = async (req, res, next) => {
     }
 }
 
-export const deletePayment: RequestHandler = async (req, res, next) => {
-    let user: User | null = await verifyToken(req);
-
-    if (!user){
-        return res.status(403).send(); //403 forbidden if user is not logged in 
-    }
-
-    let paymentId = req.params.paymentId;
-    let paymentFound = await Payment.findByPk(paymentId);
-    
-    if (paymentFound) {
-        if (paymentFound.userId == user.userId ) 
-        {
-            await Payment.destroy({
-                    where: { paymentId: paymentId }
-            });
-            res.status(200).json();
-        }
-        else{
-            res.status(403).send();
-        }
-    }
-    else {
-        res.status(404).json();
-    }
-}
