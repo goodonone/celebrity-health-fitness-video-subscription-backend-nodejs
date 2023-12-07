@@ -1,5 +1,4 @@
 import { Sequelize } from "sequelize";
-import { ProfileFactory, AssociateUserMessage } from "./payment";
 import { UserFactory } from "./user";
 
 const dbName = 'FitnessAPI';
@@ -12,8 +11,6 @@ const sequelize = new Sequelize(dbName, username, password, {
     dialect: 'mysql'
 });
 
-ProfileFactory(sequelize);
 UserFactory(sequelize);
-AssociateUserMessage();
 
 export const db = sequelize;
