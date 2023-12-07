@@ -1,10 +1,10 @@
 
-import dotenv from 'dotenv';
+// import dotenv from 'dotenv';
 import express from 'express';
 ///SIMPLIFY
 
 if (process.env.NODE_ENV !== 'production') {
-    dotenv.config();
+    //dotenv.config();
   }
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
