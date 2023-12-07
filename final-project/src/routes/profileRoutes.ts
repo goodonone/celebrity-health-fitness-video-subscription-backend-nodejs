@@ -5,7 +5,7 @@ const router = Router();
 
 router.get('/', getAllProfiles);
 router.post('/', createProfile);
- router.get('/:profileId', getProfile);
+router.get('/:profileId', getProfile);
 router.put('/:profileId', updateProfile);
 router.delete('/:profileId', deleteProfile);
 

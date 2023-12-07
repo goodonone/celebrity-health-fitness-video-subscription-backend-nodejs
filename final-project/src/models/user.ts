@@ -2,10 +2,15 @@ import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize }
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>>{
     declare userId: number;
-    declare username: string;
+    declare email: string;
     declare password: string;
-    declare firstName: string;
-    declare lastName: string;
+    declare name: string;
+    declare weight: string;
+    declare height: string;
+    declare gender: string;
+    declare goals: string;
+    declare tier: string;
+    declare dateOfBirth: string;
     declare createdAt?: Date;
     declare updatedAt?: Date;
 }
@@ -18,20 +23,39 @@ export function UserFactory(sequelize: Sequelize) {
             primaryKey: true,
             allowNull: false
         },
-        username: {
+        email: {
             type: DataTypes.STRING,
             allowNull: false
-            // unique: true
         },
         password: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        firstName: {
+        name: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        lastName: {
+        weight: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        height: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        gender: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        goals: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        tier: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        dateOfBirth: {
             type: DataTypes.STRING,
             allowNull: false,
         },
