@@ -1,7 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express'
 import morgan from 'morgan';
 import { db } from './models';
-import profileRoutes from './routes/profileRoutes';
 import userRoutes from './routes/userRoutes';
 
 const app = express();
@@ -15,7 +14,6 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 // routes
-app.use('/api/profiles', profileRoutes);
 app.use('/api/users', userRoutes);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
