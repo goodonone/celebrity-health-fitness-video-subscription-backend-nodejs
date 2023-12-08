@@ -11,6 +11,7 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare goals: string;
     declare tier: string;
     declare dateOfBirth: string;
+    declare imgUrl: string;
     declare createdAt?: Date;
     declare updatedAt?: Date;
 }
@@ -56,6 +57,10 @@ export function UserFactory(sequelize: Sequelize) {
             allowNull: false,
         },
         dateOfBirth: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        imgUrl: {
             type: DataTypes.STRING,
             allowNull: false,
         },
