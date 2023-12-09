@@ -11,7 +11,6 @@ export class Payment extends Model<InferAttributes<Payment>, InferCreationAttrib
     declare membershipDate?: Date;//createdAt
     declare updatedAt?: Date;
 }
-// Stripe code needs to be added here
 
 export function PaymentFactory(sequelize: Sequelize) {
     Payment.init({
@@ -60,5 +59,5 @@ export function PaymentFactory(sequelize: Sequelize) {
 
 export function AssociateUserMessage() {
     User.hasMany(Payment, { foreignKey: 'userId' });
-    Payment.belongsTo(User, { foreignKey: 'userId' });
+    Payment.belongsTo(User, { foreignKey: 'paymentId' });
 }
