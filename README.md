@@ -1,1 +1,0 @@
-# team-fully-stacked-backend
