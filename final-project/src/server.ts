@@ -26,11 +26,11 @@ const app = express();
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
 
-const PORT: number = 3000;
+//const PORT: number = 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
-});
+//app.listen(PORT, () => {
+//  console.log(`Server is listening on port ${PORT}`);
+//});
 
 
 
