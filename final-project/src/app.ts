@@ -26,4 +26,5 @@ db.sync({ alter: true }).then(() => {
     console.info("connected to the database!")
 });
 
-app.listen(3001);
+//app.listen(3001);
+app.listen(3000);
