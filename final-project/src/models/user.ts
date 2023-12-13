@@ -38,31 +38,31 @@ export function UserFactory(sequelize: Sequelize) {
         },
         weight: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true
         },
         height: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         gender: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         goals: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         tier: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true
         },
         dateOfBirth: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
         },
         imgUrl: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true
         },
         createdAt: {
             type: DataTypes.DATE,
