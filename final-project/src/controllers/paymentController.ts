@@ -19,23 +19,23 @@ export const getPayment: RequestHandler = async (req, res, next) => {
     }
 }
 
-// export const createPayment: RequestHandler = async (req, res, next) => {
-//     let user: User | null = await verifyToken(req);
+export const createPayment: RequestHandler = async (req, res, next) => {
+    let user: User | null = await verifyToken(req);
 
-//     if (!user){
-//         return res.status(403).send(); //403 forbidden if user is not logged in 
-//     }
+    if (!user){
+        return res.status(403).send(); //403 forbidden if user is not logged in 
+    }
 
-//     let newPayment: Payment = req.body;
-//     newPayment.userId = user.userId;
-//     if (newPayment.DateOfBirth) {
-//         let created = await Payment.create(newPayment);
-//         res.status(201).json(created);
-//     }
-//     else {
-//         res.status(400).send();
-//     }
-// }
+    let newPayment: Payment = req.body;
+    newPayment.userId = user.userId;
+    if (newPayment.tier) {
+        let created = await Payment.create(newPayment);
+        res.status(201).json(created);
+    }
+    else {
+        res.status(400).send();
+    }
+}
 
 export const updatePayment: RequestHandler = async (req, res, next) => {
     let user: User | null = await verifyToken(req);
