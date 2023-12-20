@@ -1,12 +1,16 @@
 import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize } from "sequelize";
-import { Payment } from "./payment";
+//import { Payment } from "./payment";
+import {Cart} from "./cart";
 
 export class Product extends Model<InferAttributes<Product>, InferCreationAttributes<Product>>{
     declare productId: number;
-    declare paymentId: number;
-    declare Name: string;
-    declare Description: string;
-    declare imgUrl: string;
+    //declare paymentId: number;
+    declare productName: string;
+    declare productPrice: number;
+    declare productDescription: string;
+    declare productUrl: string;
+    declare createdAt?: Date;
+    declare updatedAt?: Date;
 }
 
 export function ProductFactory(sequelize: Sequelize) {
@@ -17,20 +21,24 @@ export function ProductFactory(sequelize: Sequelize) {
             primaryKey: true,
             allowNull: false
         },
-        paymentId: {
-            type: DataTypes.INTEGER,
-            allowNull: false
-        },
-        Name: {
+        // paymentId: {
+        //     type: DataTypes.INTEGER,
+        //     allowNull: false
+        // },
+        productName: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        Description: {
+        productPrice: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        productDescription: {
             type: DataTypes.STRING,
             allowNull: false,
         },
        
-        imgUrl: {
+        productUrl: {
             type: DataTypes.STRING,
             allowNull: false,
         },
@@ -40,7 +48,30 @@ export function ProductFactory(sequelize: Sequelize) {
         sequelize
     });
 }
-export function AssociateUserMessage() {
-    Payment.hasMany(Product, { foreignKey: 'paymentId' });
-    Product.belongsTo(Payment, { foreignKey: 'productId' });
+// export function AssociateCartProduct() {
+//     Cart.hasMany(Product, { foreignKey: 'productId' });
+//     Product.belongsTo(Cart, { foreignKey: 'productId' });
+// }
+export function AssociateCartProduct() {
+    Product.hasMany(Cart, { foreignKey: 'productId' });
+    Cart.belongsTo(Product, { foreignKey: 'productId' });
 }
+
+
+//CREATE DATABASE FitnessAPI;
+// USE FitnessAPI;
+
+// CREATE TABLE products (
+//   productId INTEGER AUTO_INCREMENT,
+//   Name VARCHAR(255),
+//   Description VARCHAR(255),
+//   paymentId INT,  -- Assuming it's an integer, you can adjust the data type accordingly
+//   imageUrl VARCHAR(255),  -- Assuming the URL can be stored in a VARCHAR column
+//   PRIMARY KEY (productId),
+//   FOREIGN KEY (paymentId) REFERENCES payments(paymentId)
+// );
+
+
+
+// SHOW TABLES;
+// DESCRIBE FitnessAPI;git

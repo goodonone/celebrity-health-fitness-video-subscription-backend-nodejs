@@ -6,7 +6,7 @@ import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../s
 export const createUser: RequestHandler = async (req, res, next) => {
     let newUser: User = req.body;
 
-    console.log(newUser)
+    // console.log(newUser)
 
     if (newUser.email && newUser.password) {
         let hashedPassword = await hashPassword(newUser.password);
@@ -14,6 +14,7 @@ export const createUser: RequestHandler = async (req, res, next) => {
         let created = await User.create(newUser);
         res.status(200).json({
             email: created.email,
+            password: created.password,
             userId: created.userId
         });
     }
@@ -28,19 +29,19 @@ export const loginUser: RequestHandler = async (req, res, next) => {
         where: { email: req.body.email }
     });
 
-    console.log(existingUser)
+    // console.log(existingUser)
 
     // If user exists, check that password matches
     if (existingUser) {
-        console.log(existingUser.password)
-        console.log(req.body.password)
+        // console.log(existingUser.password)
+        // console.log(req.body.password)
 
         let passwordsMatch = await comparePasswords(req.body.password, existingUser.password);
         // If passwords match, create a JWT
-        console.log(passwordsMatch)
+        // console.log(passwordsMatch)
         if (passwordsMatch) {
             let token = await signUserToken(existingUser);
-            res.status(200).json({ "email": existingUser.email,"userId":existingUser.userId, token });
+            res.status(200).json({ "email": existingUser.email,"password": existingUser.password, "userId":existingUser.userId, token });
         }
         else {
             res.status(401).json('Invalid password');
@@ -91,8 +92,8 @@ export const updateUser: RequestHandler = async (req, res, next) => {
     let userId = req.params.id;
     let newProfile: User = req.body;
     
-    console.log(userId)
-    console.log(newProfile)
+    // console.log(userId)
+    // console.log(newProfile)
 
     let userFound = await User.findByPk(userId);
     
