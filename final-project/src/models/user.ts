@@ -1,7 +1,8 @@
 import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize } from "sequelize";
+import {Cart} from "./cart";
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>>{
-    declare userId: number;
+    declare userId: string;
     declare email: string;
     declare password: string;
     declare name: string;
@@ -19,8 +20,8 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
 export function UserFactory(sequelize: Sequelize) {
     User.init({
         userId: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
+            type: DataTypes.STRING,
+            // autoIncrement: true,
             primaryKey: true,
             allowNull: false
         },
@@ -54,7 +55,7 @@ export function UserFactory(sequelize: Sequelize) {
         },
         tier: {
             type: DataTypes.STRING,
-            allowNull: true
+            allowNull: false
         },
         dateOfBirth: {
             type: DataTypes.STRING,
@@ -79,4 +80,11 @@ export function UserFactory(sequelize: Sequelize) {
         freezeTableName: true,
         sequelize
     });
+}
+export function AssociateCartUser() {
+    //Cart.hasOne(User, { foreignKey: 'userId' });
+    //User.belongsTo(Cart, { foreignKey: 'userId' });
+    Cart.hasOne(User,{ foreignKey: 'userId'})
+    User.belongsTo(Cart, { foreignKey: 'userId' })
+   // Cart.belongsTo(Product, { foreignKey: 'productId' });
 }
