@@ -7,13 +7,12 @@ import { RequestHandler } from "express";
 export const getAllProducts: RequestHandler = async (req, res, next) => {
     let products = await Product.findAll();
     res.status(200).json(products);
-
 }
 
-//Render Product Page
-export const addProductPage: RequestHandler = (req, res, next) => {
-    res.render('add-Product');
-}
+// //Render Product Page
+// export const addProductPage: RequestHandler = (req, res, next) => {
+//     res.render('add-Product');
+// }
 
 //Get A Product by productId
 export const getProduct: RequestHandler = async (req, res, next) => {

@@ -31,7 +31,7 @@ export function PaymentFactory(sequelize: Sequelize) {
             allowNull: false
         },
         price: {
-            type: DataTypes.STRING,
+            type: DataTypes.NUMBER,
             allowNull: false
         },
         paymentType: {
