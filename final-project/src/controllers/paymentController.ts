@@ -3,32 +3,17 @@ import { Payment } from "../models/payment";
 import { verifyToken } from "../services/auth";
 import {User} from "../models/user";
 
-export const getAllPayments: RequestHandler = async (req, res, next) => {
-    let payments = await Payment.findAll();
-    res.status(200).json(payments);
-}
-
-export const getPayment: RequestHandler = async (req, res, next) => {
-    let paymentId = req.params.paymentId;
-    let paymentFound = await Payment.findByPk(paymentId);
-    if (paymentFound) {
-        res.status(200).json(paymentFound);
-    }
-    else {
-        res.status(404).json();
-    }
-}
 
 export const createPayment: RequestHandler = async (req, res, next) => {
-    let user: User | null = await verifyToken(req);
+    // let user: User | null = await verifyToken(req);
 
-    if (!user){
-        return res.status(403).send(); //403 forbidden if user is not logged in 
-    }
+    // if (!user){
+    //     return res.status(403).send(); //403 forbidden if user is not logged in 
+    // }
 
     let newPayment: Payment = req.body;
-    newPayment.userId = user.userId;
-    if (newPayment.tier) {
+    // newPayment.userId = user.userId;
+    if (newPayment.userId && newPayment.tier) {
         let created = await Payment.create(newPayment);
         res.status(201).json(created);
     }
@@ -38,20 +23,25 @@ export const createPayment: RequestHandler = async (req, res, next) => {
 }
 
 export const updatePayment: RequestHandler = async (req, res, next) => {
-    let user: User | null = await verifyToken(req);
+    // let user: User | null = await verifyToken(req);
 
-    if (!user){
-        return res.status(403).send(); //403 forbidden if user is not logged in 
-    }
+    // if (!user){
+    //     return res.status(403).send(); //403 forbidden if user is not logged in 
+    // }
     
-    let paymentId = req.params.paymentId;
+    let userId = req.params.userId;
     let newPayment: Payment = req.body;
-    
+    let paymentId = newPayment.paymentId;
     let paymentFound = await Payment.findByPk(paymentId);
-    
-    if (paymentFound && paymentFound.paymentId == newPayment.paymentId
-        && newPayment.paymentStatus ) {
-            if (paymentFound.userId == user.userId ) 
+    // console.log(userId)
+    // console.log(newPayment)
+    // console.log(paymentId)
+    // console.log(paymentFound)
+    if (paymentFound 
+        //&& paymentFound.paymentId == newPayment.paymentId
+        //&& newPayment.paymentType 
+        ) {
+            if (paymentFound.userId == userId ) 
             {    
                 await Payment.update(newPayment, {
                     where: { paymentId: paymentId }
@@ -66,4 +56,20 @@ export const updatePayment: RequestHandler = async (req, res, next) => {
         res.status(400).json();
     }
 }
+
+// export const getAllPayments: RequestHandler = async (req, res, next) => {
+//     let payments = await Payment.findAll();
+//     res.status(200).json(payments);
+// }
+
+// export const getPayment: RequestHandler = async (req, res, next) => {
+//     let paymentId = req.params.paymentId;
+//     let paymentFound = await Payment.findByPk(paymentId);
+//     if (paymentFound) {
+//         res.status(200).json(paymentFound);
+//     }
+//     else {
+//         res.status(404).json();
+//     }
+// }
 

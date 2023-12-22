@@ -3,12 +3,14 @@ import {User} from "./user";
 
 export class Payment extends Model<InferAttributes<Payment>, InferCreationAttributes<Payment>>{
     declare paymentId: number;
-    declare userId: number;
+    declare userId: string;
     declare tier: string;
-    declare paymentStatus: string;
-    declare membershipStatus: string;
-    declare paymentFrequency: string;
-    declare membershipDate?: Date;//createdAt
+    declare price: number;
+    declare paymentType: string; //subscription or purchased
+    // declare paymentFrequency: string;
+    // declare paymentStatus: string;
+    // declare membershipStatus: string;
+    declare createdAt?: Date;//membershipDate
     declare updatedAt?: Date;
 }
 
@@ -21,26 +23,38 @@ export function PaymentFactory(sequelize: Sequelize) {
             allowNull: false
         },
         userId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             allowNull: false
         },
         tier: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        paymentStatus: {
+        tier: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        membershipStatus: {
+        price: {
+            type: DataTypes.NUMBER,
+            allowNull: false
+        },
+        paymentType: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        paymentFrequency: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        membershipDate: {
+        // paymentFrequency: {
+        //     type: DataTypes.STRING,
+        //     allowNull: false
+        // },
+        // paymentStatus: {
+        //     type: DataTypes.STRING,
+        //     allowNull: false
+        // },
+        // membershipStatus: {
+        //     type: DataTypes.STRING,
+        //     allowNull: false
+        // },
+        createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
             defaultValue: DataTypes.NOW,
@@ -57,7 +71,7 @@ export function PaymentFactory(sequelize: Sequelize) {
     });
 }
 
-export function AssociateUserMessage() {
-    User.hasMany(Payment, { foreignKey: 'userId' });
-    Payment.belongsTo(User, { foreignKey: 'paymentId' });
+export function AssociateUserPayment() {
+    Payment.hasOne(User, { foreignKey: 'userId' });
+    User.belongsTo(Payment, { foreignKey: 'userId' });
 }
