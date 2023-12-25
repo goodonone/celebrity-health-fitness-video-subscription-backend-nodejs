@@ -13,6 +13,8 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare tier: string;
     declare dateOfBirth: string;
     declare imgUrl: string;
+    declare price: number;
+    declare paymentFrequency: string;
     declare createdAt?: Date;
     declare updatedAt?: Date;
 }
@@ -65,6 +67,14 @@ export function UserFactory(sequelize: Sequelize) {
             type: DataTypes.STRING,
             allowNull: true
         },
+        price: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true
+        },
+        paymentFrequency: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
@@ -78,7 +88,12 @@ export function UserFactory(sequelize: Sequelize) {
     }, {
         tableName: 'users',
         freezeTableName: true,
-        sequelize
+        sequelize,
+        hooks: {
+            beforeCreate: (user, options) => {
+                user.userId = 'user-' + Math.random().toString(36).substr(2, 9);
+            }
+        }
     });
 }
 export function AssociateCartUser() {

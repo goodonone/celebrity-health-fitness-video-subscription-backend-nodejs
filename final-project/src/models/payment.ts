@@ -5,9 +5,9 @@ export class Payment extends Model<InferAttributes<Payment>, InferCreationAttrib
     declare paymentId: number;
     declare userId: string;
     declare tier: string;
-    declare price: number;
+    declare price: Number;
     declare paymentType: string; //subscription or purchased
-    // declare paymentFrequency: string;
+    declare paymentFrequency: string;
     // declare paymentStatus: string;
     // declare membershipStatus: string;
     declare createdAt?: Date;//membershipDate
@@ -30,22 +30,18 @@ export function PaymentFactory(sequelize: Sequelize) {
             type: DataTypes.STRING,
             allowNull: false
         },
-        tier: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
         price: {
-            type: DataTypes.NUMBER,
+            type: DataTypes.DECIMAL(10, 2),
             allowNull: false
         },
         paymentType: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        // paymentFrequency: {
-        //     type: DataTypes.STRING,
-        //     allowNull: false
-        // },
+        paymentFrequency: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
         // paymentStatus: {
         //     type: DataTypes.STRING,
         //     allowNull: false
