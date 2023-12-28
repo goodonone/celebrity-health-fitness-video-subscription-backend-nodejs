@@ -30,12 +30,8 @@ export function PaymentFactory(sequelize: Sequelize) {
             type: DataTypes.STRING,
             allowNull: false
         },
-        tier: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
         price: {
-            type: DataTypes.NUMBER,
+            type: DataTypes.DECIMAL(10, 2),
             allowNull: false
         },
         paymentType: {
