@@ -41,7 +41,7 @@ export const loginUser: RequestHandler = async (req, res, next) => {
         // console.log(passwordsMatch)
         if (passwordsMatch) {
             let token = await signUserToken(existingUser);
-            res.status(200).json({ "email": existingUser.email,"password": existingUser.password, "userId":existingUser.userId, token });
+            res.status(200).json({ "email": existingUser.email,"userId":existingUser.userId, "tier":existingUser.tier, "billing":existingUser.paymentFrequency, token });
         }
         else {
             res.status(401).json('Invalid password');
