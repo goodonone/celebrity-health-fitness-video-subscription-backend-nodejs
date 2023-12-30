@@ -57,6 +57,38 @@ export const updatePayment: RequestHandler = async (req, res, next) => {
     }
 }
 
+export const updatePaymentforSubsciption: RequestHandler = async (req, res, next) => {
+    // let user: User | null = await verifyToken(req);
+
+    // if (!user){
+    //     return res.status(403).send(); //403 forbidden if user is not logged in 
+    // }
+    
+    let userId = req.params.userId;
+    let newPayment: Payment = req.body;
+    let paymentId = newPayment.paymentId;
+    // let paymentFound = await Payment.findByPk(paymentId);
+    let paymentFound = await Payment.findOne({
+        where: {
+            userId: userId,
+            paymentType: 'subscription'
+        }
+    });
+    // console.log(userId)
+    // console.log(newPayment)
+    // console.log(paymentId)
+    // console.log(paymentFound)
+    if (paymentFound) {    
+            await Payment.update(newPayment, {
+                where: { paymentId: paymentFound.paymentId }
+            });
+            res.status(200).json({ message: 'Payment updated successfully.' });
+        }
+    else {
+        res.status(400).json({ message: 'Payment not found.' });
+    }
+}
+
 // export const getAllPayments: RequestHandler = async (req, res, next) => {
 //     let payments = await Payment.findAll();
 //     res.status(200).json(payments);
