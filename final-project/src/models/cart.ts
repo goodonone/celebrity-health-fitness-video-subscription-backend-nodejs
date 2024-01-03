@@ -6,8 +6,8 @@ import { User } from "./user";
 export class Cart extends Model<InferAttributes<Cart>, InferCreationAttributes<Cart>>{
     declare cartId: number;
     declare userId: string;
-    declare productId: number;
-    declare itemQuantity: number;
+    // declare productId: number;
+    // declare itemQuantity: number;
     declare createdAt?: Date;
     declare updatedAt?: Date;
 }
@@ -24,27 +24,35 @@ export function CartFactory(sequelize: Sequelize) {
             type: DataTypes.STRING,
             allowNull: false
         },
-        productId: {
-            type: DataTypes.INTEGER,
-            allowNull: false
-          },
-        itemQuantity: {
-            type: DataTypes.INTEGER,
-            defaultValue: 1,
-            validate: { min: 1 }
-        }
+        // productId: {
+        //     type: DataTypes.INTEGER,
+        //     allowNull: false
+        //   },
+        // itemQuantity: {
+        //     type: DataTypes.INTEGER,
+        //     defaultValue: 1,
+        //     validate: { min: 1 }
+        // }
     }, {
-        tableName: 'cart',
+        tableName: 'carts',
         freezeTableName: true,
         sequelize
     });
 }
-// export function AssociateCartUserProduct() {
-//     //Cart.hasOne(User, { foreignKey: 'userId' });
-//     //User.belongsTo(Cart, { foreignKey: 'userId' });
-//     User.hasOne(Cart,{ foreignKey: 'userId'})
-//     Cart.belongsTo(User, { foreignKey: 'userId' })
-//    // Cart.belongsTo(Product, { foreignKey: 'productId' });
+
+// Cart.belongsTo(User, { foreignKey: 'userId' });
+
+export function AssociateCartUser() {
+    //Cart.hasOne(User, { foreignKey: 'userId' });
+    //User.belongsTo(Cart, { foreignKey: 'userId' });
+    User.hasOne(Cart,{ foreignKey: 'userId'})
+    Cart.belongsTo(User, { foreignKey: 'userId' })
+   // Cart.belongsTo(Product, { foreignKey: 'productId' });
+}
+
+// export function AssociateCartProduct() {
+//     Cart.belongsToMany(Product, { foreignKey: 'cartId' });
+//     Product.belongsToMany(Cart, { foreignKey: 'productId' });
 // }
 
 // export function AssociateCartUserProduct() {

@@ -97,10 +97,13 @@ export function UserFactory(sequelize: Sequelize) {
         }
     });
 }
-export function AssociateCartUser() {
-    //Cart.hasOne(User, { foreignKey: 'userId' });
-    //User.belongsTo(Cart, { foreignKey: 'userId' });
-    Cart.hasOne(User,{ foreignKey: 'userId'})
-    User.belongsTo(Cart, { foreignKey: 'userId' })
-   // Cart.belongsTo(Product, { foreignKey: 'productId' });
-}
+
+// export function AssociateCartUser() {
+// //     //Cart.hasOne(User, { foreignKey: 'userId' });
+// //     //User.belongsTo(Cart, { foreignKey: 'userId' });
+//     Cart.hasOne(User,{ foreignKey: 'userId'})
+//     User.belongsTo(Cart, { foreignKey: 'userId' })
+//     // User.hasOne(Cart, { foreignKey: 'userId' });
+//     // Cart.belongsTo(User, { foreignKey: 'userId' })
+// //    // Cart.belongsTo(Product, { foreignKey: 'productId' });
+// }

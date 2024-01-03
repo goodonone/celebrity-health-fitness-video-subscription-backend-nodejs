@@ -1,6 +1,6 @@
 import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize } from "sequelize";
 //import { Payment } from "./payment";
-import {Cart} from "./cart";
+// import {Cart} from "./cart";
 
 export class Product extends Model<InferAttributes<Product>, InferCreationAttributes<Product>>{
     declare productId: number;
@@ -52,26 +52,7 @@ export function ProductFactory(sequelize: Sequelize) {
 //     Cart.hasMany(Product, { foreignKey: 'productId' });
 //     Product.belongsTo(Cart, { foreignKey: 'productId' });
 // }
-export function AssociateCartProduct() {
-    Product.hasMany(Cart, { foreignKey: 'productId' });
-    Cart.belongsTo(Product, { foreignKey: 'productId' });
-}
-
-
-//CREATE DATABASE FitnessAPI;
-// USE FitnessAPI;
-
-// CREATE TABLE products (
-//   productId INTEGER AUTO_INCREMENT,
-//   Name VARCHAR(255),
-//   Description VARCHAR(255),
-//   paymentId INT,  -- Assuming it's an integer, you can adjust the data type accordingly
-//   imageUrl VARCHAR(255),  -- Assuming the URL can be stored in a VARCHAR column
-//   PRIMARY KEY (productId),
-//   FOREIGN KEY (paymentId) REFERENCES payments(paymentId)
-// );
-
-
-
-// SHOW TABLES;
-// DESCRIBE FitnessAPI;git
+// export function AssociateCartProduct() {
+//     Product.hasMany(Cart, { foreignKey: 'productId' });
+//     Cart.belongsTo(Product, { foreignKey: 'productId' });
+// }
