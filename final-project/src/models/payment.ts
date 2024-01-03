@@ -68,7 +68,7 @@ export function PaymentFactory(sequelize: Sequelize) {
 }
 
 export function AssociateUserPayment() {
-    User.hasOne(Payment, { foreignKey: 'userId' });
+    User.hasMany(Payment, { foreignKey: 'userId' });
     Payment.belongsTo(User, { foreignKey: 'userId' });
 }
 
