@@ -1,6 +1,6 @@
 import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize } from "sequelize";
 //import { Payment } from "./payment";
-import {Cart} from "./cart";
+// import {Cart} from "./cart";
 
 export class Product extends Model<InferAttributes<Product>, InferCreationAttributes<Product>>{
     declare productId: number;
@@ -52,10 +52,10 @@ export function ProductFactory(sequelize: Sequelize) {
 //     Cart.hasMany(Product, { foreignKey: 'productId' });
 //     Product.belongsTo(Cart, { foreignKey: 'productId' });
 // }
-export function AssociateCartProduct() {
-    Product.hasMany(Cart, { foreignKey: 'productId' });
-    Cart.belongsTo(Product, { foreignKey: 'productId' });
-}
+// export function AssociateCartProduct() {
+//     Product.hasMany(Cart, { foreignKey: 'productId' });
+//     Cart.belongsTo(Product, { foreignKey: 'productId' });
+// }
 
 
 //CREATE DATABASE FitnessAPI;
