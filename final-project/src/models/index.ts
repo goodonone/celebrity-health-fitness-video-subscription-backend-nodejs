@@ -1,7 +1,8 @@
 import { Sequelize } from "sequelize";
 import { UserFactory } from "./user";
 import { ProductFactory } from "./product";
-import { CartFactory, AssociateCartUser, AssociateCartProduct } from "./cart";
+import { CartFactory, AssociateCartUser } from "./cart";
+import { CartProductFactory, AssociateCartProduct } from "./cart-product";
 import { PaymentFactory, AssociateUserPayment } from "./payment";
 
 const dbName = 'FitnessAPI';
@@ -18,6 +19,8 @@ UserFactory(sequelize);
 ProductFactory(sequelize);
 CartFactory(sequelize);
 PaymentFactory(sequelize);
+CartProductFactory(sequelize);
+
 AssociateCartProduct();
 AssociateCartUser();
 AssociateUserPayment();

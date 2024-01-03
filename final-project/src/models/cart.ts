@@ -1,13 +1,13 @@
 import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize } from "sequelize";
 //import { Payment } from "./payment";
 import { User } from "./user";
-import { Product } from "./product";
+// import { Product } from "./product";
 
 export class Cart extends Model<InferAttributes<Cart>, InferCreationAttributes<Cart>>{
     declare cartId: number;
     declare userId: string;
-    declare productId: number;
-    declare itemQuantity: number;
+    // declare productId: number;
+    // declare itemQuantity: number;
     declare createdAt?: Date;
     declare updatedAt?: Date;
 }
@@ -24,17 +24,17 @@ export function CartFactory(sequelize: Sequelize) {
             type: DataTypes.STRING,
             allowNull: false
         },
-        productId: {
-            type: DataTypes.INTEGER,
-            allowNull: false
-          },
-        itemQuantity: {
-            type: DataTypes.INTEGER,
-            defaultValue: 1,
-            validate: { min: 1 }
-        }
+        // productId: {
+        //     type: DataTypes.INTEGER,
+        //     allowNull: false
+        //   },
+        // itemQuantity: {
+        //     type: DataTypes.INTEGER,
+        //     defaultValue: 1,
+        //     validate: { min: 1 }
+        // }
     }, {
-        tableName: 'cart',
+        tableName: 'carts',
         freezeTableName: true,
         sequelize
     });
@@ -50,10 +50,10 @@ export function AssociateCartUser() {
    // Cart.belongsTo(Product, { foreignKey: 'productId' });
 }
 
-export function AssociateCartProduct() {
-    Cart.hasMany(Product, { foreignKey: 'productId' });
-    Product.belongsTo(Cart, { foreignKey: 'productId' });
-}
+// export function AssociateCartProduct() {
+//     Cart.belongsToMany(Product, { foreignKey: 'cartId' });
+//     Product.belongsToMany(Cart, { foreignKey: 'productId' });
+// }
 
 // export function AssociateCartUserProduct() {
 //     //Cart.hasOne(User, { foreignKey: 'userId' });
