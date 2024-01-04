@@ -1,5 +1,6 @@
 import { Product } from "../models/product";
 import { RequestHandler } from "express";
+import { productList } from '../models/productList';
 //import { verifyToken } from "../services/auth";
 //import {User} from "../models/user";
 
