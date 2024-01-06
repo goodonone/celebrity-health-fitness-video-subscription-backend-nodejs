@@ -14,6 +14,8 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare imgUrl: string;
     declare createdAt?: Date;
     declare updatedAt?: Date;
+    declare paymentFrequency?: string;
+    declare price?: number;
 }
 
 export function UserFactory(sequelize: Sequelize) {
@@ -73,6 +75,14 @@ export function UserFactory(sequelize: Sequelize) {
             type: DataTypes.DATE,
             allowNull: false,
             defaultValue: DataTypes.NOW,
+        },
+        paymentFrequency: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        price: {
+            type: DataTypes.INTEGER,
+            allowNull: true
         }
     }, {
         tableName: 'users',
