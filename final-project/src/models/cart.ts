@@ -5,7 +5,7 @@ import { User } from "./user";
 
 export class Cart extends Model<InferAttributes<Cart>, InferCreationAttributes<Cart>>{
     declare cartId: number;
-    declare userId: string;
+    declare userId: number;
     // declare productId: number;
     // declare itemQuantity: number;
     declare createdAt?: Date;
@@ -21,7 +21,7 @@ export function CartFactory(sequelize: Sequelize) {
             allowNull: false
         },
         userId: {
-            type: DataTypes.STRING,
+            type: DataTypes.INTEGER,
             allowNull: false
         },
         // productId: {

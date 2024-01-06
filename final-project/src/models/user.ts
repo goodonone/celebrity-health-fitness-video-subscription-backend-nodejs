@@ -2,7 +2,7 @@ import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize }
 import {Cart} from "./cart";
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>>{
-    declare userId: string;
+    declare userId: number;
     declare email: string;
     declare password: string;
     declare name: string;
@@ -22,8 +22,8 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
 export function UserFactory(sequelize: Sequelize) {
     User.init({
         userId: {
-            type: DataTypes.STRING,
-            // autoIncrement: true,
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
             primaryKey: true,
             allowNull: false
         },
@@ -89,12 +89,12 @@ export function UserFactory(sequelize: Sequelize) {
         tableName: 'users',
         freezeTableName: true,
         sequelize,
-        hooks: {
-            beforeCreate: (user, options) => {
-                //user.userId = 'user-' + Math.random().toString(18).substr(2, 9);
-                user.userId = Math.random().toString(18).slice(2);
-            }
-        }
+        // hooks: {
+        //     beforeCreate: (user, options) => {
+        //         //user.userId = 'user-' + Math.random().toString(18).substr(2, 9);
+        //         user.userId = Math.random().toString(18).slice(2);
+        //     }
+        // }
     });
 }
 
