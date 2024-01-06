@@ -110,30 +110,38 @@ export const updateUser: RequestHandler = async (req, res, next) => {
         return res.status(403).send(); //403 forbidden if user is not logged in 
     }
     
-    let userId = req.params.id;
-    let newProfile: User = req.body;
+    console.log(user);
+    user.paymentFrequency = req.body.paymentFrequency;
+    user.price = req.body.price;
+    user.tier = req.body.tier;
+    user.save();
+    res.status(200).json(user);
+
+
+    // let userId = req.params.id;
+    // let newProfile: User = req.body;
     
     // console.log(userId)
     // console.log(newProfile)
 
-    let userFound = await User.findByPk(userId);
+    // let userFound = await User.findByPk(userId);
     
-    if (userFound && userFound.userId == newProfile.userId
-        && newProfile.name ) {
-            if (userFound.userId == user.userId ) 
-            {    
-                await User.update(newProfile, {
-                    where: { userId: userId }
-                });
-                res.status(200).json();
-            }
-            else{
-                res.status(403).send();
-            }
-    }
-    else {
-        res.status(400).json();
-    }
+    // if (userFound && userFound.userId == newProfile.userId
+    //     && newProfile.name ) {
+    //         if (userFound.userId == user.userId ) 
+    //         {    
+    //             await User.update(newProfile, {
+    //                 where: { userId: userId }
+    //             });
+    //             res.status(200).json();
+    //         }
+    //         else{
+    //             res.status(403).send();
+    //         }
+    // }
+    // else {
+    //     res.status(400).json();
+    // }
 }
 
 export const deleteUser: RequestHandler = async (req, res, next) => {

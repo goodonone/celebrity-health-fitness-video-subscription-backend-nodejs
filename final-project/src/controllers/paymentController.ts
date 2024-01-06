@@ -41,7 +41,7 @@ export const updatePayment: RequestHandler = async (req, res, next) => {
         //&& paymentFound.paymentId == newPayment.paymentId
         //&& newPayment.paymentType 
         ) {
-            if (paymentFound.userId == userId ) 
+            if (paymentFound.userId == parseInt(userId) ) 
             {    
                 await Payment.update(newPayment, {
                     where: { paymentId: paymentId }
