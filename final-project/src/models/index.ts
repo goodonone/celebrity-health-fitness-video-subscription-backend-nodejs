@@ -8,9 +8,9 @@ import { productList } from './productList';
 import { Product } from "./product"; 
 
 
-const dbName = 'FitnessAPI';
+const dbName = 'FitnessAPI2';
 const username = 'root';
-const password = 'Password1!';
+const password = 'Triumph23';
 
 const sequelize = new Sequelize(dbName, username, password, {
     host: '127.0.0.1',

@@ -3,7 +3,7 @@ import {User} from "./user";
 
 export class Payment extends Model<InferAttributes<Payment>, InferCreationAttributes<Payment>>{
     declare paymentId: number;
-    declare userId: string;
+    declare userId: number;
     declare tier: string;
     declare price: number;
     declare paymentType: string; //subscription or purchased
@@ -23,7 +23,7 @@ export function PaymentFactory(sequelize: Sequelize) {
             allowNull: false
         },
         userId: {
-            type: DataTypes.STRING,
+            type: DataTypes.INTEGER,
             allowNull: false
         },
         tier: {

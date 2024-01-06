@@ -1,6 +1,8 @@
 import { RequestHandler } from "express";
 import {User} from "../models/user";
 import {Cart} from "../models/cart";
+
+import {Payment} from "../models/payment";
 import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../services/auth";
 
 
@@ -13,10 +15,23 @@ export const createUser: RequestHandler = async (req, res, next) => {
         let hashedPassword = await hashPassword(newUser.password);
         newUser.password = hashedPassword;
         let created = await User.create(newUser);
+
+        // call createPayment
+        let newPayment: Payment = req.body;
+        newPayment.userId = created.userId;
+        // newPayment.userId = user.userId;
+        // if (newPayment.userId && newPayment.tier) {
+            let payment = await Payment.create(newPayment);
+            // res.status(201).json(created);
+        // }
+        // else {
+        //     res.status(400).send();
+        // }
+
         res.status(200).json({
             email: created.email,
             // password: created.password,
-            userId: created.userId
+            ...payment.dataValues
         });
         // // Create a cart for the new user
         // // interface CartCreationAttributes extends Omit<Cart, 'cartId'> {}
