@@ -24,11 +24,11 @@ export function PaymentFactory(sequelize: Sequelize) {
         },
         userId: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: true
         },
         tier: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         price: {
             type: DataTypes.DECIMAL(10, 2),
@@ -36,11 +36,11 @@ export function PaymentFactory(sequelize: Sequelize) {
         },
         paymentType: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         // paymentFrequency: {
         //     type: DataTypes.STRING,
-        //     allowNull: false
+        //     allowNull: true
         // },
         // paymentStatus: {
         //     type: DataTypes.STRING,
