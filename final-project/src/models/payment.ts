@@ -36,7 +36,7 @@ export function PaymentFactory(sequelize: Sequelize) {
         },
         paymentType: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         // paymentFrequency: {
         //     type: DataTypes.STRING,

@@ -57,7 +57,7 @@ export function UserFactory(sequelize: Sequelize) {
         },
         tier: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         dateOfBirth: {
             type: DataTypes.STRING,
