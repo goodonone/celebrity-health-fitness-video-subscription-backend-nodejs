@@ -22,6 +22,16 @@ export const createPayment: RequestHandler = async (req, res, next) => {
     }
 }
 
+export const createStorePayment: RequestHandler = async (req, res, next) => {
+    
+
+    let newPayment: Payment = req.body;
+    
+        let created = await Payment.create(newPayment);
+        res.status(201).json(created);
+    
+}
+
 export const updatePayment: RequestHandler = async (req, res, next) => {
     // let user: User | null = await verifyToken(req);
 
