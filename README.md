@@ -11,3 +11,5 @@ Backend App Specifications: The backend is developed using MVC based Node.js and
 ## Future Development:
 - [In-Progress] Store the cart in the backend, so if the user doesn't checkout and logs out and logs back in their cart is still intact with all the items they added. 
 - Stripe Payment Platform Integration.
+
+## Front-End: https://github.com/goodonone/celebrity-health-fitness-video-subscription
