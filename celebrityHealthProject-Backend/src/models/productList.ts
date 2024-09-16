@@ -4,7 +4,7 @@ export const productList= [
   {
     productId:1,
     productName:"Dumbbell",
-    productPrice:20,
+    productPrice:80,
     productDescription:"Tumblr man braid vinyl whatever bodega boys, keffiyeh mumblecore yes plz. Unicorn vegan four dollar toast taxidermy, vaporware tote bag tacos distillery vibecession austin messenger bag. ",
     productUrl:"https://images.unsplash.com/photo-1638536532686-d610adfc8e5c?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D”,“createdAt”:“2023-12-19T11:06:18.000Z”,“updatedAt”:“2023-12-19T11:06:18.000Z"
   },
@@ -12,14 +12,14 @@ export const productList= [
   {
     productId:2,
     productName:"YogaMat",
-    productPrice:30,
+    productPrice:60,
     productDescription:"Try-hard whatever skateboard trust fund gochujang pabst pork belly. Poutine gentrify chartreuse yes plz cliche.",
     productUrl:"https://images.unsplash.com/photo-1592432678016-e910b452f9a2?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
   },
   {
     productId:3,
     productName:"Barbell",
-    productPrice:50,
+    productPrice:150,
     productDescription:"Salvia flexitarian meh, four dollar toast retro hexagon cray pabst before they sold out dreamcatcher microdosing literally. ",
     productUrl:"https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D”,“createdAt”:“2023-12-19T11:19:38.000Z”,“updatedAt”:“2023-12-19T11:19:38.000Z"},
   {
@@ -39,7 +39,7 @@ export const productList= [
   {
     productId:6,
     productName:"Gloves",
-    productPrice:35,
+    productPrice:60,
     productDescription:"Letterpress seitan lomo kogi. Shaman adaptogen meh coloring book fam, cliche chicharrones. Taxidermy hashtag chartreuse blog austin keffiyeh craft beer godard fit pinterest umami schlitz narwhal tumblr. ",
     productUrl:"https://slack-imgs.com/?c=1&o1=ro&url=https%3A%2F%2Fimages.unsplash.com%2Fphoto-1583473848882-f9a5bc7fd2ee%3Fq%3D80%26w%3D3540%26auto%3Dformat%26fit%3Dcrop%26ixlib%3Drb-4.0.3%26ixid%3DM3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%253D%253D"
   },
