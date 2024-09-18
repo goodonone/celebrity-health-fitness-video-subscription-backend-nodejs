@@ -103,7 +103,7 @@ export function UserFactory(sequelize: Sequelize): typeof User {
             defaultValue: DataTypes.NOW,
         }
     }, {
-        tableName: 'turnips',
+        tableName: 'users',
         freezeTableName: true,
         sequelize,
         hooks: {
