@@ -76,7 +76,7 @@ import { UserFactory } from "./user";
 import { ProductFactory } from "./product";
 import { CartFactory } from "./cart";
 import { CartProductFactory } from "./cart-product";
-import { Product } from "./product";
+import { Product as ProductModel } from "./product";
 import { PaymentFactory } from "./payment";
 import { productList, ProductListItem } from './productList';
 import { AssociateAllModels } from './associations';
@@ -101,7 +101,7 @@ const uid = new Snowflake({
 
 // Initialize models
 const User = UserFactory(sequelize);
-const Products = ProductFactory(sequelize);
+const Product = ProductFactory(sequelize);
 const Cart = CartFactory(sequelize);
 const CartProduct = CartProductFactory(sequelize);
 const Payment = PaymentFactory(sequelize);
@@ -130,7 +130,7 @@ async function initializeDatabase() {
         console.log("All tables dropped successfully.");
 
         // Create tables one by one
-        await User.sync({ force: true });
+        await User.sync({ alter: true });
         console.log("Users table created successfully.");
         // Add this after User.sync() in the initializeDatabase function
         // await sequelize.getQueryInterface().addIndex('users', ['email'], {
@@ -139,16 +139,16 @@ async function initializeDatabase() {
         // });
         console.log("Index added to Users table successfully");
 
-        await Products.sync({ force: true });
-        console.log("Products table created successfully.");
-
-        await Cart.sync({ force: true });
+        await Cart.sync({ alter: true });
         console.log("Cart table created successfully.");
 
-        await CartProduct.sync({ force: true });
+        await Product.sync({ alter: true });
+        console.log("Products table created successfully.");
+
+        await CartProduct.sync({ alter: true });
         console.log("CartProduct table created successfully.");
 
-        await Payment.sync({ force: true });
+        await Payment.sync({ alter: true });
         console.log("Payment table created successfully.");
 
         // Re-enable foreign key checks
