@@ -1,9 +1,20 @@
 import { DataTypes, InferAttributes, InferCreationAttributes, Model, Sequelize } from "sequelize";
 import {User} from "./user";
+import { Snowflake } from "nodejs-snowflake";
+
+
+const idGenerator = new Snowflake({
+    custom_epoch: 1725148800000, 
+    instance_id: 1 
+  });
+
+  function generateSnowflakeId(): string {
+    return idGenerator.getUniqueID().toString();
+  }
 
 export class Payment extends Model<InferAttributes<Payment>, InferCreationAttributes<Payment>>{
-    declare paymentId: number;
-    declare userId: number;
+    declare paymentId: string;
+    declare userId: string;
     declare tier: string;
     declare price: number;
     declare paymentType: string; //subscription or purchased
@@ -14,16 +25,15 @@ export class Payment extends Model<InferAttributes<Payment>, InferCreationAttrib
     declare updatedAt?: Date;
 }
 
-export function PaymentFactory(sequelize: Sequelize) {
+export function PaymentFactory(sequelize: Sequelize): typeof Payment {
     Payment.init({
         paymentId: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
+            type: DataTypes.STRING,
             primaryKey: true,
-            allowNull: false
+            defaultValue: generateSnowflakeId 
         },
         userId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             allowNull: true
         },
         tier: {
@@ -65,10 +75,14 @@ export function PaymentFactory(sequelize: Sequelize) {
         tableName: 'payments',
         sequelize
     });
+
+    return Payment;
 }
 
-export function AssociateUserPayment() {
-    User.hasMany(Payment, { foreignKey: 'userId' });
-    Payment.belongsTo(User, { foreignKey: 'userId' });
-}
+
+// export function AssociateUserPayment() {
+//     User.hasMany(Payment, { foreignKey: 'userId' });
+//     Payment.belongsTo(User, { foreignKey: 'userId' });
+
+// }
 
