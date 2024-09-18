@@ -65,19 +65,14 @@ import { CartProduct } from './cart-product';
 import { Payment } from './payment';
 
 export function AssociateAllModels() {
-    // User-Cart Association
-    User.hasOne(Cart, { foreignKey: 'userId'});
+    User.hasOne(Cart, { foreignKey: 'userId', onDelete: 'CASCADE' });
     Cart.belongsTo(User, { foreignKey: 'userId' });
-    // User.hasOne(Cart, { foreignKey: 'userId', as: 'cart', onDelete: 'CASCADE' });
-    // Cart.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-    // Cart-Product Association
     Cart.belongsToMany(Product, { through: CartProduct, foreignKey: 'cartId' });
     Product.belongsToMany(Cart, { through: CartProduct, foreignKey: 'productId' });
     CartProduct.belongsTo(Cart, { foreignKey: 'cartId' });
     CartProduct.belongsTo(Product, { foreignKey: 'productId' });
 
-    // User-Payment Association
     User.hasMany(Payment, { foreignKey: 'userId' });
     Payment.belongsTo(User, { foreignKey: 'userId' });
 }
