@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import {User} from "../models/user";
-import {Cart} from "../models/cart";
+// import {Cart} from "../models/cart";
 
 import {Payment} from "../models/payment";
 import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../services/auth";
@@ -93,7 +93,7 @@ export const getUser: RequestHandler = async (req, res, next) => {
 
 
     // let user: User | null = await verifyToken(req);
-    if (userFound && userFound.userId == user.userId) {
+    if (userFound && userFound.userId === user.userId) {
         res.status(200).json(user);
     }
     else {
@@ -227,7 +227,7 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
     let userFound = await User.findByPk(userId);
     
     if (userFound) {
-        if (userFound.userId == user.userId ) 
+        if (userFound.userId === user.userId ) 
         {
             await User.destroy({
                     where: { userId: userId }
@@ -274,7 +274,7 @@ export const checkPassword: RequestHandler = async (req, res, next) => {
     const { password } = req.body;
     const userId = req.params.id;
 
-    if (user.userId !== parseInt(userId)) {
+    if (user.userId !== userId) {
         return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -297,7 +297,7 @@ export const updatePassword: RequestHandler = async (req, res, next) => {
     const { newPassword } = req.body;
     const userId = req.params.id;
 
-    if (user.userId !== parseInt(userId)) {
+    if (user.userId !== userId) {
         return res.status(403).json({ message: 'Unauthorized' });
     }
 
