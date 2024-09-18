@@ -8,6 +8,18 @@ const execPromise = util.promisify(exec);
 
 const app = express();
 
+// const cors = require('cors');
+
+// // Enable CORS for all routes
+// app.use(cors());
+
+// // Optionally, configure CORS with specific settings
+// app.use(cors({
+//   origin: 'http://localhost:4200', 
+//   methods: 'GET,POST,PUT,DELETE',  
+//   allowedHeaders: 'Content-Type,Authorization'  // Allow these headers
+// }));
+
 // ... (rest of your express setup)
 
 async function runCommand(command: string) {
