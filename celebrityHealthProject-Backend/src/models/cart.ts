@@ -203,15 +203,8 @@ export function CartFactory(sequelize: Sequelize): typeof Cart {
         },
         userId: {
             type: DataTypes.STRING,
-            allowNull: false,
-            references: {
-              model: 'users',
-              key: 'userId'
-            },
+            allowNull: false
         },
-        //     onUpdate: 'CASCADE',
-        //     onDelete: 'CASCADE'
-        //   },
         createdAt: {
             type: DataTypes.DATE,
             allowNull: false,
@@ -226,11 +219,6 @@ export function CartFactory(sequelize: Sequelize): typeof Cart {
         tableName: 'carts',
         freezeTableName: true,
         sequelize
-        // hooks: {
-        //     beforeSync: (options: any) => {
-        //       options.hooks = false;
-        //     }
-        //   }
     });
 
     return Cart;

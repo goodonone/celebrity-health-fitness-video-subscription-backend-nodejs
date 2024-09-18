@@ -1,36 +1,54 @@
-import express, { NextFunction, Request, Response } from 'express'
-import morgan from 'morgan';
+import express from 'express';
 import { db } from './models';
-import userRoutes from './routes/userRoutes';
-import productRoutes from './routes/productRoutes';
-import paymentRoutes from './routes/paymentRoutes';
-import cartRoutes from './routes/cartRoutes';
+import { exec } from 'child_process';
+import util from 'util';
+import path from 'path';
+
+const execPromise = util.promisify(exec);
 
 const app = express();
 
-const cors = require('cors');
-app.use(cors());
+// ... (rest of your express setup)
 
-app.use(morgan('dev'));
+async function runCommand(command: string) {
+    try {
+        const { stdout, stderr } = await execPromise(command);
+        console.log('stdout:', stdout);
+        if (stderr) console.error('stderr:', stderr);
+    } catch (error) {
+        console.error(`Error executing command: ${command}`);
+        throw error;
+    }
+}
 
-app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+async function initializeDatabase() {
+    try {
+        console.log('Running migrations...');
+        await runCommand('npx sequelize-cli db:migrate --config src/config/config.json');
+        console.log('Migrations completed successfully.');
 
-// routes
-app.use('/api/users', userRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/payment', paymentRoutes);
+        console.log('Running seeders...');
+        await runCommand('npx sequelize-cli db:seed:all --config src/config/config.json');
+        console.log('Seeding completed successfully.');
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-    res.status(404).end();
+        console.log("Database initialization completed successfully");
+    } catch (error) {
+        console.error("Error during database initialization:", error);
+        process.exit(1);
+    }
+}
+
+// Initialize database and start the server
+initializeDatabase().then(() => {
+    // Syncing our database
+    db.sync({ alter: true }).then(() => {
+        console.info("connected to the database!")
+        // Start the server
+        app.listen(3000, () => {
+            console.log('Server is running on port 3000');
+        });
+    });
+}).catch(error => {
+    console.error("Failed to initialize database:", error);
+    process.exit(1);
 });
-
-// Syncing our database
-db.sync({ alter: true }).then(() => {
-//db.sync().then(() => {
-    console.info("connected to the database!")
-});
-
-// app.listen(3001);
-app.listen(3000);
