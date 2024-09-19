@@ -1,6 +1,8 @@
 
 // import dotenv from 'dotenv';
 import express from 'express';
+// import dotenv from 'dotenv';
+// dotenv.config();
 ///SIMPLIFY
 
 if (process.env.NODE_ENV !== 'production') {

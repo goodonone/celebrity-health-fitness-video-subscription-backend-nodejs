@@ -1,10 +1,15 @@
 import { RequestHandler } from "express";
 import {User} from "../models/user";
-import {Cart} from "../models/cart";
-
+// import {Cart} from "../models/cart";
 import {Payment} from "../models/payment";
+import jwt from 'jsonwebtoken';
 import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../services/auth";
 
+const secret = process.env.JWT_SECRET
+
+if(!secret) {
+    throw new Error('JWT secret is not defined');
+}
 
 export const createUser: RequestHandler = async (req, res, next) => {
     let newUser: User = req.body;
@@ -44,34 +49,157 @@ export const createUser: RequestHandler = async (req, res, next) => {
     }
 }
 
-export const loginUser: RequestHandler = async (req, res, next) => {
-    // Look up user by their email
-    let existingUser: User | null = await User.findOne({ 
-        where: { email: req.body.email }
-    });
+// export const loginUser: RequestHandler = async (req, res, next) => {
+//     console.log('Login request body:', req.body);
 
-    // console.log(existingUser)
+//     const { email, password } = req.body;
+//     const user = await User.findOne({ where: { email: email.trim() } });
 
-    // If user exists, check that password matches
-    if (existingUser) {
-        // console.log(existingUser.password)
-        // console.log(req.body.password)
+//     if (!user) {
+//         return res.status(401).json({ message: 'User not found' });
+//     }
 
-        let passwordsMatch = await comparePasswords(req.body.password, existingUser.password);
-        // If passwords match, create a JWT
-        // console.log(passwordsMatch)
-        if (passwordsMatch) {
-            let token = await signUserToken(existingUser);
-            res.status(200).json({ "email": existingUser.email,"userId":existingUser.userId, "tier":existingUser.tier, "billing":existingUser.paymentFrequency, token });
+//     // Look up user by their email
+//     let existingUser: User | null = await User.findOne({ 
+//         where: { email: req.body.email }
+//     });
+
+//     // If user exists, check that password matches
+//     if (existingUser) {
+//         console.log('Stored password:', existingUser.password);
+//         console.log('Entered password:', req.body.password);
+
+//         let passwordsMatch = await comparePasswords(req.body.password, existingUser.password);
+//         console.log('Passwords match:', passwordsMatch);
+//         // If passwords match, create a JWT
+//         if (passwordsMatch) {
+//             let token = await signUserToken(existingUser);
+//             res.status(200).json({ "email": existingUser.email,
+//                                     "userId":existingUser.userId, 
+//                                     "tier":existingUser.tier, 
+//                                     "billing":existingUser.paymentFrequency, 
+//                                     token });
+//         }
+        
+//         if (!passwordsMatch) {
+//             return res.status(401).json({ message: 'Invalid credentials' });
+//         }
+    
+//         const token = await signUserToken(user);
+//         res.status(200).json({ token });
+//     }
+//     else {
+//         res.status(401).json('Invalid email');
+//     }
+// }
+
+export const loginUser: RequestHandler = async (req, res) => {
+    try {
+        // Extract email and password from the request body
+        const { email, password } = req.body;
+
+        // Find the user by email, and trim any extra spaces from the email
+        const user = await User.findOne({ where: { email: email.trim() } });
+
+        // If user is not found, return 401 status with a 'User not found' message
+        if (!user) {
+            return res.status(401).json({ message: 'User not found' });
         }
-        else {
-            res.status(401).json('Invalid password');
+
+        // Debug: Log the stored hashed password and the entered plain password
+        console.log('Stored password:', user.password);
+        console.log('Entered password:', password);
+
+        // Compare the entered password with the stored hashed password
+        const passwordsMatch = await comparePasswords(password, user.password);
+        console.log('Passwords match:', passwordsMatch);
+
+        // If passwords do not match, return 401 status with an 'Invalid credentials' message
+        if (!passwordsMatch) {
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
+
+        // Generate a JWT token for the authenticated user
+        const token = await signUserToken(user);
+
+        // Return user information and the token
+        return res.status(200).json({
+            email: user.email,
+            userId: user.userId,
+            tier: user.tier,
+            billing: user.paymentFrequency,
+            token
+        });
+    } catch (error) {
+        // Handle any errors that occur during the process
+        console.error('Error during login:', error);
+        return res.status(500).json({ message: 'Internal server error' });
     }
-    else {
-        res.status(401).json('Invalid email');
-    }
-}
+};
+
+// export const loginUser: RequestHandler = async (req, res) => {
+//     try {
+//       const { email, password } = req.body;
+//       const user = await User.findOne({ where: { email: email.trim() } });
+  
+//       if (!user) {
+//         return res.status(401).json({ message: 'User not found' });
+//       }
+  
+//       const passwordsMatch = await comparePasswords(password, user.password);
+//       if (!passwordsMatch) {
+//         return res.status(401).json({ message: 'Invalid credentials' });
+//       }
+  
+//       // Generate access and refresh tokens
+//       const accessToken = jwt.sign({ userId: user.userId }, secret, { expiresIn: '1hr' });
+//       const refreshToken = jwt.sign({ userId: user.userId }, secret, { expiresIn: '30d' });
+  
+//       // Store refresh token in a secure HTTP-only cookie
+//       res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true });
+  
+//       return res.status(200).json({
+//         email: user.email,
+//         userId: user.userId,
+//         tier: user.tier,
+//         billing: user.paymentFrequency,
+//         accessToken,
+//       });
+//     } catch (error) {
+//       console.error('Error during login:', error);
+//       return res.status(500).json({ message: 'Internal server error' });
+//     }
+//   };
+
+// export const loginUser: RequestHandler = async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
+//         const user = await User.findOne({ where: { email: email.trim() } });
+
+//         if (!user) {
+//             return res.status(401).json({ message: 'User not found' });
+//         }
+
+//         const passwordsMatch = await comparePasswords(password, user.password);
+//         if (!passwordsMatch) {
+//             return res.status(401).json({ message: 'Invalid credentials' });
+//         }
+
+//         // Generate access token
+//         const token = await signUserToken(user);
+
+//         return res.status(200).json({
+//             email: user.email,
+//             userId: user.userId,
+//             tier: user.tier,
+//             paymentFrequency: user.paymentFrequency,
+//             token // This is the access token
+//         });
+//     } catch (error) {
+//         console.error('Error during login:', error);
+//         return res.status(500).json({ message: 'Internal server error' });
+//     }
+// };
 
 export const getAllUsers: RequestHandler = async (req, res, next) => {
     let users = await User.findAll();
@@ -93,7 +221,7 @@ export const getUser: RequestHandler = async (req, res, next) => {
 
 
     // let user: User | null = await verifyToken(req);
-    if (userFound && userFound.userId == user.userId) {
+    if (userFound && userFound.userId === user.userId) {
         res.status(200).json(user);
     }
     else {
@@ -227,7 +355,7 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
     let userFound = await User.findByPk(userId);
     
     if (userFound) {
-        if (userFound.userId == user.userId ) 
+        if (userFound.userId === user.userId ) 
         {
             await User.destroy({
                     where: { userId: userId }
@@ -245,6 +373,7 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
 
 export const checkEmail: RequestHandler = async (req, res, next) => {
     const { email } = req.body;
+    console.log('Email received:', email); // Debug log
 
     if (!email) {
         return res.status(400).json({ error: 'Email is required' });
@@ -274,7 +403,7 @@ export const checkPassword: RequestHandler = async (req, res, next) => {
     const { password } = req.body;
     const userId = req.params.id;
 
-    if (user.userId !== parseInt(userId)) {
+    if (user.userId !== userId) {
         return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -297,7 +426,7 @@ export const updatePassword: RequestHandler = async (req, res, next) => {
     const { newPassword } = req.body;
     const userId = req.params.id;
 
-    if (user.userId !== parseInt(userId)) {
+    if (user.userId !== userId) {
         return res.status(403).json({ message: 'Unauthorized' });
     }
 
