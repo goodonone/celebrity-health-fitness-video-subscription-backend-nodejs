@@ -34,7 +34,11 @@ export function PaymentFactory(sequelize: Sequelize): typeof Payment {
         },
         userId: {
             type: DataTypes.STRING,
-            allowNull: true
+            allowNull: true,
+            references: {
+                model: 'users',
+                key: 'userId'
+            },
         },
         tier: {
             type: DataTypes.STRING,
@@ -73,7 +77,8 @@ export function PaymentFactory(sequelize: Sequelize): typeof Payment {
     }, {
         freezeTableName: true,
         tableName: 'payments',
-        sequelize
+        sequelize,
+        modelName: 'Payment',
     });
 
     return Payment;

@@ -24,7 +24,7 @@ export const productList: ProductListItem[] = [
   },
   {
     productName:"Barbell",
-    productPrice:150,
+    productPrice:95,
     productDescription:"Salvia flexitarian meh, four dollar toast retro hexagon cray pabst before they sold out dreamcatcher microdosing literally. ",
     productUrl:"https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D”,“createdAt”:“2023-12-19T11:19:38.000Z”,“updatedAt”:“2023-12-19T11:19:38.000Z"},
   {

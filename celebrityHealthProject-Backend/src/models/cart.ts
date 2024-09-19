@@ -179,6 +179,7 @@
 import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize } from "sequelize";
 
 import { Snowflake } from "nodejs-snowflake";
+import { CartProduct } from "./cart-product";
 
 // Initialize Snowflake ID generator
 const uid = new Snowflake({
@@ -191,6 +192,9 @@ export class Cart extends Model<InferAttributes<Cart>, InferCreationAttributes<C
     declare userId: string;
     declare createdAt: Date;
     declare updatedAt: Date;
+
+   
+    declare CartProducts?: CartProduct[];
 }
 
 export function CartFactory(sequelize: Sequelize): typeof Cart {
@@ -218,7 +222,8 @@ export function CartFactory(sequelize: Sequelize): typeof Cart {
     }, {
         tableName: 'carts',
         freezeTableName: true,
-        sequelize
+        sequelize,
+        modelName: 'Cart'
     });
 
     return Cart;

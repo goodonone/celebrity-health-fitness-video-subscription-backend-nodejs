@@ -64,6 +64,9 @@ export class CartProduct extends Model<InferAttributes<CartProduct>, InferCreati
     declare quantity: number;
     declare createdAt: Date;
     declare updatedAt: Date;
+
+    // Add the Product association as an optional field
+    declare Product?: Product;
 }
 
 export function CartProductFactory(sequelize: Sequelize): typeof CartProduct {
@@ -105,6 +108,7 @@ export function CartProductFactory(sequelize: Sequelize): typeof CartProduct {
         tableName: 'cart_products',
         freezeTableName: true,
         sequelize,
+        modelName: 'CartProduct',
         timestamps: false
         // indexes: [
         //     {
