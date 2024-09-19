@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createPayment, createStorePayment, updatePayment, updatePaymentforSubsciption } from '../controllers/paymentController'
+import { createPayment, createStorePayment, updatePayment, updatePaymentForSubscription } from '../controllers/paymentController'
 
 const router = Router();
 
@@ -8,6 +8,6 @@ router.post('/', createPayment);
 router.post('/store/', createStorePayment);
 //  router.get('/:paymentId', getPayment);
 router.put('/:userId', updatePayment);
-router.put('/:userId', updatePaymentforSubsciption);
+router.put('/:userId', updatePaymentForSubscription);
 
 export default router;

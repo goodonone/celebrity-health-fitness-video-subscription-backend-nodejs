@@ -1,39 +1,56 @@
 import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize } from "sequelize";
 import {Cart} from "./cart";
+import { Snowflake } from "nodejs-snowflake";
+import bcrypt from 'bcrypt';
+
+// Initialize Snowflake ID generator
+const uid = new Snowflake({
+    custom_epoch: 1725148800000, 
+    instance_id: 1
+  });
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>>{
-    declare userId: number;
+    declare userId: string;
     declare email: string;
     declare password: string;
     declare name: string;
-    declare weight: string;
-    declare height: string;
-    declare gender: string;
-    declare goals: string;
-    declare tier: string;
+    declare weight: string | null;
+    declare height: string | null;
+    declare gender: string | null;
+    declare goals: string | null;
+    declare tier: string | null;
     declare dateOfBirth: string;
-    declare imgUrl: string;
-    declare price: number;
-    declare paymentFrequency: string;
+    declare imgUrl: string | null;
+    declare price: number | null;
+    declare paymentFrequency: string | null;
     declare createdAt?: Date;
     declare updatedAt?: Date;
+
+    
 }
 
-export function UserFactory(sequelize: Sequelize) {
+export function UserFactory(sequelize: Sequelize): typeof User {
     User.init({
         userId: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
+            type: DataTypes.STRING, // Changed to STRING
             primaryKey: true,
-            allowNull: false
+            allowNull: false,
+            defaultValue: () => uid.getUniqueID().toString() // Generate Snowflake ID
         },
         email: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            unique: true,
+            validate: {
+                isEmail: true
+            }
         },
         password: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                len: [8, 100]
+            }
         },
         name: {
             type: DataTypes.STRING,
@@ -89,18 +106,30 @@ export function UserFactory(sequelize: Sequelize) {
         tableName: 'users',
         freezeTableName: true,
         sequelize,
+        modelName: 'User',
         // hooks: {
-        //     beforeCreate: (user, options) => {
-        //         //user.userId = 'user-' + Math.random().toString(18).substr(2, 9);
-        //         user.userId = Math.random().toString(18).slice(2);
+        //     beforeCreate: async (user: User) => {
+        //         if (user.password) {
+        //             user.password = await bcrypt.hash(user.password, 10);
+        //         }
+        //     },
+        //     beforeUpdate: async (user: User) => {
+        //         if (user.changed('password')) {
+        //             user.password = await bcrypt.hash(user.password, 10);
+        //         }
         //     }
         // }
     });
+
+    return User;
 }
 
 // export function AssociateCartUser() {
-// //     //Cart.hasOne(User, { foreignKey: 'userId' });
-// //     //User.belongsTo(Cart, { foreignKey: 'userId' });
+//     User.hasOne(Cart, { foreignKey: 'userId' });
+//     Cart.belongsTo(User, { foreignKey: 'userId' });
+// }
+
+
 //     Cart.hasOne(User,{ foreignKey: 'userId'})
 //     User.belongsTo(Cart, { foreignKey: 'userId' })
 //     // User.hasOne(Cart, { foreignKey: 'userId' });

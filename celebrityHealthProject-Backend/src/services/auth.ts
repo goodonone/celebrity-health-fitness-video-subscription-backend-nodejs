@@ -2,8 +2,17 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user';
 import { Request } from "express";
+import dotenv from 'dotenv';
 
-const secret = 'Tea, Earl Grey, Hot';
+dotenv.config();
+
+const secret = process.env.JWT_SECRET;
+if (!secret) {
+    console.log('Environment variables:', process.env); // Temporary debug line
+    throw new Error('JWT secret is not defined');
+}
+
+// const secret = 'Tea, Earl Grey, Hot';
 
 export const hashPassword = async (plainTextPassword: string) => {
     const saltRound = 12;
@@ -11,9 +20,15 @@ export const hashPassword = async (plainTextPassword: string) => {
     return hash;
 }
 
+// export const comparePasswords = async (plainTextPassword: string, hashPassword: string) => {
+//     return await bcrypt.compare(plainTextPassword, hashPassword);
+// }
+
 export const comparePasswords = async (plainTextPassword: string, hashPassword: string) => {
+    console.log('Plain Text Password:', plainTextPassword);
+    console.log('Hashed Password:', hashPassword);
     return await bcrypt.compare(plainTextPassword, hashPassword);
-}
+};
 
 export const signUserToken = async (user: User) => {
     //console.log(user.userId)
@@ -38,11 +53,12 @@ export const verifyToken = async (req: Request) => {
             return User.findByPk(decoded.userId);
         }
         catch (err) {
-            console.log(err)
+            console.error('Token verification failed:', err);
             return null;
         }
     }
     else {
         return null;
     }
+
 }
