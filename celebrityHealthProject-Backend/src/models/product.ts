@@ -113,7 +113,8 @@ export function ProductFactory(sequelize: Sequelize): typeof Product {
     }, {
         tableName: 'products',
         freezeTableName: true,
-        sequelize
+        sequelize,
+        modelName: 'Product',
     });
 
     return Product;

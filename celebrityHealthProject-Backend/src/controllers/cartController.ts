@@ -240,24 +240,303 @@ const uid = new Snowflake({
 
 
 // Get the user's cart
+// export const getCart: RequestHandler = async (req, res, next) => {
+//     let userId = req.params.userId;
+
+//     let cartFound = await Cart.findAll({ 
+//         where: { userId },
+//         include: [{ 
+//             model: Product,
+//             attributes: ['productName', 'productPrice'] 
+//         }]
+//     });
+//     if (cartFound) {
+//         res.status(200).json(cartFound);
+//     } else {
+//         res.status(404).json('Cart not found');
+//     }
+// }
+// export const getCart: RequestHandler = async (req, res, next) => {
+//     let userId = req.params.userId;
+
+//     try {
+//         let cartFound = await Cart.findOne({ 
+//             where: { userId },
+//             include: [{ 
+//                 model: CartProduct,
+//                 as: 'CartProducts',
+//                 include: [{
+//                     model: Product,
+//                     as: 'Product'
+//                 }]
+//             }]
+//         });
+
+//         if (cartFound) {
+//             // Calculate total quantity and total price for the cart
+//             const totalCount = cartFound.CartProducts?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+//             const totalPrice = cartFound.CartProducts?.reduce((sum, item) => sum + item.quantity * (item.Product?.productPrice || 0), 0) ?? 0;
+
+//             const cartResponse = {
+//                 ...cartFound.toJSON(),
+//                 totalCount,
+//                 totalPrice
+//             };
+
+//             res.status(200).json(cartResponse);
+//         } else {
+//             res.status(404).json('Cart not found');
+//         }
+//     } catch (error) {
+//         console.error('Error fetching cart:', error);
+//         res.status(500).json({ message: 'Internal server error', error: error.message });
+//     }
+// }
+
 export const getCart: RequestHandler = async (req, res, next) => {
     let userId = req.params.userId;
 
-    let cartFound = await Cart.findAll({ 
-        where: { userId },
-        include: [{ 
-            model: Product,
-            attributes: ['productName', 'productPrice'] 
-        }]
-    });
-    if (cartFound) {
-        res.status(200).json(cartFound);
-    } else {
-        res.status(404).json('Cart not found');
+    try {
+        let cartFound = await Cart.findOne({ 
+            where: { userId },
+            include: [{ 
+                model: CartProduct,
+                as: 'CartProducts',
+                include: [{
+                    model: Product,
+                    as: 'Product'
+                }]
+            }]
+        });
+
+        if (cartFound) {
+            // Calculate total quantity and total price for the cart
+            const totalCount = cartFound.CartProducts?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+            const totalPrice = cartFound.CartProducts?.reduce((sum, item) => sum + item.quantity * (item.Product?.productPrice || 0), 0) ?? 0;
+
+            const cartResponse = {
+                ...cartFound.toJSON(),
+                totalCount,
+                totalPrice
+            };
+
+            res.status(200).json(cartResponse);
+        } else {
+            res.status(404).json({ message: 'Cart not found' });
+        }
+    } catch (error) {
+        console.error('Error fetching cart:', error);
+        res.status(500).json({ 
+            message: 'Internal server error', 
+            error: error instanceof Error ? error.message : 'An unknown error occurred'
+        });
     }
 }
 
+
 // Add a product to the cart
+
+// export const addToCart: RequestHandler = async (req, res) => {
+//     const { quantity } = req.body;
+//     const { userId, productId } = req.params;
+
+//     if (userId && productId) {
+//         try {
+//             // Find or create a cart for the user
+//             let [cart, cartCreated] = await Cart.findOrCreate({
+//                 where: { userId: userId }
+//             });
+
+//             const now = new Date();
+
+//             // Find an existing CartProduct entry
+//             let [cartProduct, created] = await CartProduct.findOrCreate({
+//                 where: { cartId: cart.cartId, productId: productId },
+//                 defaults: {
+//                     cartProductId: uid.getUniqueID().toString(),
+//                     cartId: cart.cartId,
+//                     productId: productId,
+//                     quantity: parseInt(quantity, 10),
+//                     createdAt: now,
+//                     updatedAt: now
+//                 }
+//             });
+
+//             if (!created) {
+//                 // If the product is already in the cart, update the quantity
+//                 cartProduct.quantity += parseInt(quantity, 10);
+//                 cartProduct.updatedAt = now;
+//                 await cartProduct.save();
+//             }
+
+//             res.status(created ? 201 : 200).json(cartProduct);
+//         } catch (error) {
+//             console.error(error);
+//             res.status(500).send('Server error when adding to cart');
+//         }
+//     } else {
+//         res.status(400).send('User ID and Product ID are required');
+//     }
+// };
+
+// export const addToCart: RequestHandler = async (req, res) => {
+//     const { quantity } = req.body;
+//     const { userId, productId } = req.params;
+
+//     if (userId && productId) {
+//         try {
+//             // Find or create a cart for the user
+//             let [cart, cartCreated] = await Cart.findOrCreate({
+//                 where: { userId: userId }
+//             });
+
+//             const now = new Date();
+
+//             // Find an existing CartProduct entry or create one
+//             let [cartProduct, created] = await CartProduct.findOrCreate({
+//                 where: { cartId: cart.cartId, productId: productId },
+//                 defaults: {
+//                     cartProductId: uid.getUniqueID().toString(),
+//                     cartId: cart.cartId,
+//                     productId: productId,
+//                     quantity: parseInt(quantity, 10),
+//                     createdAt: now,
+//                     updatedAt: now
+//                 }
+//             });
+
+//             if (!created) {
+//                 // If the product is already in the cart, update the quantity
+//                 cartProduct.quantity += parseInt(quantity, 10);
+//                 cartProduct.updatedAt = now;
+//                 await cartProduct.save();
+//             }
+
+//             // Fetch the updated cart with all items and associated products
+//             // const updatedCart = await Cart.findOne({
+//             //     where: { cartId: cart.cartId },
+//             //     include: [
+//             //         {
+//             //             model: CartProduct,
+//             //             include: [Product] // Ensure the associated Product is fetched
+//             //         }
+//             //     ]
+//             // });
+//             const updatedCart = await Cart.findOne({
+//                 where: { cartId: cart.cartId },
+//                 include: [
+//                     {
+//                         model: CartProduct,
+//                         as: 'cartProducts',
+//                         include: [{
+//                             model: Product,
+//                             as: 'product'
+//                         }]
+//                     }
+//                 ]
+//             });
+
+//             // Calculate total quantity and total price for the cart
+//             // const totalCount = updatedCart!.CartProducts?.reduce((sum: number, item: CartProduct) => sum + item.quantity, 0) ?? 0;
+//             // const totalCount = updatedCart!.cartProducts?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+
+//             // Access the Product and its price via the association
+//             // const totalPrice = updatedCart!.CartProducts?.reduce((sum: number, item: CartProduct) => {
+
+
+//             //     return sum + item.quantity * (item.Product?.productPrice || 0);
+//             // }, 0) ?? 0;
+
+//             // Calculate total quantity and total price for the cart
+//             const totalCount = updatedCart!.CartProducts?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+//             // Access the Product and its price via the association
+//             const totalPrice = updatedCart!.CartProducts?.reduce((sum, item) => sum + item.quantity * (item.Product?.productPrice || 0), 0) ?? 0;
+
+//             // Add total count and price to the response
+//             const fullCartResponse = {
+//                 ...updatedCart!.toJSON(),  // Include all cart details
+//                 totalCount,
+//                 totalPrice
+//             };
+
+//             res.status(created ? 201 : 200).json(fullCartResponse);  // Return full cart with details
+//         } catch (error) {
+//             console.error(error);
+//             res.status(500).send('Server error when adding to cart');
+//         }
+//     } else {
+//         res.status(400).send('User ID and Product ID are required');
+//     }
+// };
+
+// export const addToCart: RequestHandler = async (req, res) => {
+//     const { quantity } = req.body;
+//     const { userId, productId } = req.params;
+
+//     if (userId && productId) {
+//         try {
+//             // Find or create a cart for the user
+//             let [cart, cartCreated] = await Cart.findOrCreate({
+//                 where: { userId: userId }
+//             });
+
+//             const now = new Date();
+
+//             // Find an existing CartProduct entry or create one
+//             let [cartProduct, created] = await CartProduct.findOrCreate({
+//                 where: { cartId: cart.cartId, productId: productId },
+//                 defaults: {
+//                     cartProductId: uid.getUniqueID().toString(),
+//                     cartId: cart.cartId,
+//                     productId: productId,
+//                     quantity: parseInt(quantity, 10),
+//                     createdAt: now,
+//                     updatedAt: now
+//                 }
+//             });
+
+//             if (!created) {
+//                 // If the product is already in the cart, update the quantity
+//                 cartProduct.quantity += parseInt(quantity, 10);
+//                 cartProduct.updatedAt = now;
+//                 await cartProduct.save();
+//             }
+
+//             // Fetch the updated cart with all items and associated products
+//             const updatedCart = await Cart.findOne({
+//                 where: { cartId: cart.cartId },
+//                 include: [
+//                     {
+//                         model: CartProduct,
+//                         as: 'CartProducts',
+//                         include: [{
+//                             model: Product,
+//                             as: 'Product'
+//                         }]
+//                     }
+//                 ]
+//             });
+
+//             // Calculate total quantity and total price for the cart
+//             const totalCount = updatedCart!.CartProducts?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+//             const totalPrice = updatedCart!.CartProducts?.reduce((sum, item) => sum + item.quantity * (item.Product?.productPrice || 0), 0) ?? 0;
+
+//             // Add total count and price to the response
+//             const fullCartResponse = {
+//                 ...updatedCart!.toJSON(),
+//                 totalCount,
+//                 totalPrice
+//             };
+
+//             res.status(created ? 201 : 200).json(fullCartResponse);
+//         } catch (error) {
+//             console.error('Error adding to cart:', error);
+//             res.status(500).json({ message: 'Server error when adding to cart', error: error.message });
+//         }
+//     } else {
+//         res.status(400).json({ message: 'User ID and Product ID are required' });
+//     }
+// };
 
 export const addToCart: RequestHandler = async (req, res) => {
     const { quantity } = req.body;
@@ -272,7 +551,7 @@ export const addToCart: RequestHandler = async (req, res) => {
 
             const now = new Date();
 
-            // Find an existing CartProduct entry
+            // Find an existing CartProduct entry or create one
             let [cartProduct, created] = await CartProduct.findOrCreate({
                 where: { cartId: cart.cartId, productId: productId },
                 defaults: {
@@ -292,15 +571,49 @@ export const addToCart: RequestHandler = async (req, res) => {
                 await cartProduct.save();
             }
 
-            res.status(created ? 201 : 200).json(cartProduct);
+            // Fetch the updated cart with all items and associated products
+            const updatedCart = await Cart.findOne({
+                where: { cartId: cart.cartId },
+                include: [
+                    {
+                        model: CartProduct,
+                        as: 'CartProducts',
+                        include: [{
+                            model: Product,
+                            as: 'Product'
+                        }]
+                    }
+                ]
+            });
+
+            if (!updatedCart) {
+                throw new Error("Failed to fetch updated cart");
+            }
+
+            // Calculate total quantity and total price for the cart
+            const totalCount = updatedCart.CartProducts?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+            const totalPrice = updatedCart.CartProducts?.reduce((sum, item) => sum + item.quantity * (item.Product?.productPrice || 0), 0) ?? 0;
+
+            // Add total count and price to the response
+            const fullCartResponse = {
+                ...updatedCart.toJSON(),
+                totalCount,
+                totalPrice
+            };
+
+            res.status(created ? 201 : 200).json(fullCartResponse);
         } catch (error) {
-            console.error(error);
-            res.status(500).send('Server error when adding to cart');
+            console.error('Error adding to cart:', error);
+            res.status(500).json({ 
+                message: 'Server error when adding to cart', 
+                error: error instanceof Error ? error.message : 'An unknown error occurred' 
+            });
         }
     } else {
-        res.status(400).send('User ID and Product ID are required');
+        res.status(400).json({ message: 'User ID and Product ID are required' });
     }
 };
+
 
 // Remove a product from the cart
 export const removeFromCart: RequestHandler = async (req, res) => {

@@ -106,18 +106,19 @@ export function UserFactory(sequelize: Sequelize): typeof User {
         tableName: 'users',
         freezeTableName: true,
         sequelize,
-        hooks: {
-            beforeCreate: async (user: User) => {
-                if (user.password) {
-                    user.password = await bcrypt.hash(user.password, 10);
-                }
-            },
-            beforeUpdate: async (user: User) => {
-                if (user.changed('password')) {
-                    user.password = await bcrypt.hash(user.password, 10);
-                }
-            }
-        }
+        modelName: 'User',
+        // hooks: {
+        //     beforeCreate: async (user: User) => {
+        //         if (user.password) {
+        //             user.password = await bcrypt.hash(user.password, 10);
+        //         }
+        //     },
+        //     beforeUpdate: async (user: User) => {
+        //         if (user.changed('password')) {
+        //             user.password = await bcrypt.hash(user.password, 10);
+        //         }
+        //     }
+        // }
     });
 
     return User;
