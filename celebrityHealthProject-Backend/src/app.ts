@@ -149,13 +149,15 @@ import productRoutes from './routes/productRoutes';
 import cartRoutes from './routes/cartRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import { AssociateAllModels } from './models/associations';
+import { OAuth2Client } from 'google-auth-library';
 // import path from 'path';
 //   // Load .env file
 
 //   console.log('Current working directory:', process.cwd());
 //   console.log('.env file path:', path.resolve(process.cwd(), '.env'));
   
-//   dotenv.config();
+  dotenv.config();
+  
   
 //   console.log('JWT_SECRET:', process.env.JWT_SECRET); // Check if JWT_SECRET is being loaded
 
@@ -174,11 +176,16 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // CORS configuration
 app.use(cors({
-    origin: 'http://localhost:4200',
+    origin: ['http://localhost:4200', 'https://accounts.google.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    next();
+});
 
 app.use(morgan('dev'));
 app.use(express.json());
@@ -204,6 +211,46 @@ app.options('*', cors(), (req, res) => {
 
 // Initialize models and set up associations
 AssociateAllModels(db);
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
+    const { code } = req.query;
+    try {
+        const { tokens } = await client.getToken(code as string);
+        const ticket = await client.verifyIdToken({
+            idToken: tokens.id_token as string,
+            audience: process.env.GOOGLE_CLIENT_ID as string
+        });
+        const payload = ticket.getPayload();
+        
+        // Implement your user creation/login logic here
+        // ...
+
+        // Send a response that will close the popup and message the opener
+        res.send(`
+            <script>
+                window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', payload: ${JSON.stringify(payload)} }, '*');
+                window.close();
+            </script>
+        `);
+    } catch (error) {
+        console.error('Error during Google authentication:', error);
+        res.status(500).send('Authentication failed');
+    }
+});
+
+// 404 handler
+app.use((req: Request, res: Response) => {
+    res.status(404).json({ message: 'Not Found' });
+});
+
+// Enable pre-flight across all routes
+app.options('*', cors(), (req, res) => {
+    console.log('Pre-flight OPTIONS request handled');
+    res.sendStatus(204);
+});
+
 
 async function runCommand(command: string) {
     try {
