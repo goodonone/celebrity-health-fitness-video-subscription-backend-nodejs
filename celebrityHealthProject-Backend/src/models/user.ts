@@ -12,7 +12,8 @@ const uid = new Snowflake({
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>>{
     declare userId: string;
     declare email: string;
-    declare password: string;
+    declare password: string | null;
+    declare isGoogleAuth: boolean;
     declare name: string;
     declare weight: string | null;
     declare height: string | null;
@@ -47,10 +48,15 @@ export function UserFactory(sequelize: Sequelize): typeof User {
         },
         password: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
             validate: {
                 len: [8, 100]
             }
+        },
+        isGoogleAuth: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
         },
         name: {
             type: DataTypes.STRING,
@@ -74,7 +80,8 @@ export function UserFactory(sequelize: Sequelize): typeof User {
         },
         tier: {
             type: DataTypes.STRING,
-            allowNull: true
+            allowNull: false,
+            defaultValue: 'Just Looking'
         },
         dateOfBirth: {
             type: DataTypes.STRING,
@@ -90,7 +97,8 @@ export function UserFactory(sequelize: Sequelize): typeof User {
         },
         paymentFrequency: {
             type: DataTypes.STRING,
-            allowNull: true
+            allowNull: false,
+            defaultValue: 'monthly'
         },
         createdAt: {
             type: DataTypes.DATE,

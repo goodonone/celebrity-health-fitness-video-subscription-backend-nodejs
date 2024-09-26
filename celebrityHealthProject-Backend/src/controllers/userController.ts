@@ -4,8 +4,22 @@ import {User} from "../models/user";
 import {Payment} from "../models/payment";
 import jwt from 'jsonwebtoken';
 import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../services/auth";
+import { OAuth2Client } from 'google-auth-library';
+import { Snowflake } from "nodejs-snowflake";
+
+const idGenerator = new Snowflake({
+    custom_epoch: 1725148800000,
+    instance_id: 1
+});
+
+function generateSnowflakeId(): string {
+    return idGenerator.getUniqueID().toString();
+}
 
 const secret = process.env.JWT_SECRET
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const callbackUrl = process.env.GOOGLE_CALLBACK_URL;
 
 if(!secret) {
     throw new Error('JWT secret is not defined');
@@ -48,6 +62,63 @@ export const createUser: RequestHandler = async (req, res, next) => {
         res.status(400).send('Email and password required');
     }
 }
+
+
+export const googleAuth: RequestHandler = async (req, res) => {
+    try {
+        const { token } = req.body;
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        if (!payload) {
+            return res.status(400).json({ message: 'Invalid token' });
+        }
+
+        const { email, name, picture } = payload;
+
+        let user = await User.findOne({ where: { email } });
+
+        if (!user) {
+            // Create new user
+            user = await User.create({
+                userId: generateSnowflakeId(), // Generate a new userId
+                email: email ?? '',
+                name: name ?? '',
+                password: null,
+                isGoogleAuth: true,
+                imgUrl: picture ?? '',
+                tier: 'Just Looking',
+                paymentFrequency: 'monthly',
+                dateOfBirth: '1900-01-01', // Provide a default date of birth as a string
+                // Add other necessary fields with default values
+            });
+
+            // Create initial payment record
+            await Payment.create({
+                userId: user.userId,
+                tier: 'Just Looking',
+                price: 0, 
+                paymentType: 'subscription'
+            } as Payment);
+        }
+
+        // Generate JWT
+        const jwtToken = await signUserToken(user);
+
+        res.status(200).json({
+            email: user.email,
+            userId: user.userId,
+            tier: user.tier,
+            paymentFrequency: user.paymentFrequency,
+            token: jwtToken
+        });
+    } catch (error) {
+        console.error('Error during Google authentication:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
 
 // export const loginUser: RequestHandler = async (req, res, next) => {
 //     console.log('Login request body:', req.body);
@@ -106,9 +177,13 @@ export const loginUser: RequestHandler = async (req, res) => {
             return res.status(401).json({ message: 'User not found' });
         }
 
+        if (user.password === null) {
+            return res.status(401).json({ message: 'Invalid login method' });
+        }
+
         // Debug: Log the stored hashed password and the entered plain password
-        console.log('Stored password:', user.password);
-        console.log('Entered password:', password);
+        // console.log('Stored password:', user.password);
+        // console.log('Entered password:', password);
 
         // Compare the entered password with the stored hashed password
         const passwordsMatch = await comparePasswords(password, user.password);
@@ -291,8 +366,8 @@ export const updateUser: RequestHandler = async (req, res, next) => {
     const userId = req.params.id;
     const updateData: Partial<User> = req.body;
 
-    console.log('User ID:', userId);
-    console.log('Update data:', updateData);
+    // console.log('User ID:', userId);
+    // console.log('Update data:', updateData);
 
     try {
         const userToUpdate = await User.findByPk(userId);
@@ -373,7 +448,7 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
 
 export const checkEmail: RequestHandler = async (req, res, next) => {
     const { email } = req.body;
-    console.log('Email received:', email); // Debug log
+    // console.log('Email received:', email); // Debug log
 
     if (!email) {
         return res.status(400).json({ error: 'Email is required' });
@@ -408,6 +483,10 @@ export const checkPassword: RequestHandler = async (req, res, next) => {
     }
 
     try {
+        if(user.password === null) {
+            return res.status(400).json({ message: 'User does not have a password set' });
+        }
+
         const isMatch = await comparePasswords(password, user.password);
         res.json(isMatch);
     } catch (error) {
