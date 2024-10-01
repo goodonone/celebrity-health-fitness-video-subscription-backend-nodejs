@@ -31,7 +31,7 @@
 // export default router;
 
 import { Router } from 'express';
-import { createUser, loginUser, getUser, getAllUsers, updateUser, deleteUser, checkEmail, checkPassword, updatePassword, googleAuth } from '../controllers/userController';
+import { createUser, loginUser, getUser, getAllUsers, updateUser, deleteUser, checkEmail, checkPassword, updatePassword } from '../controllers/userController';
 
 
 const router = Router();
@@ -39,7 +39,7 @@ const router = Router();
 // Define your user routes
 router.post('/', createUser);
 router.post('/login', loginUser);
-router.post('/google-auth', googleAuth); 
+// router.post('/google-auth', googleAuth); 
 router.get('/', getAllUsers);
 router.get('/:id', getUser);
 router.put('/data/:id', updateUser);

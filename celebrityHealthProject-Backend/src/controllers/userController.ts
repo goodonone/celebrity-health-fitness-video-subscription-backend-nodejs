@@ -1,4 +1,4 @@
-import { RequestHandler } from "express";
+import { Request, RequestHandler, Response } from "express";
 import {User} from "../models/user";
 // import {Cart} from "../models/cart";
 import {Payment} from "../models/payment";
@@ -18,8 +18,8 @@ function generateSnowflakeId(): string {
 
 const secret = process.env.JWT_SECRET
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const callbackUrl = process.env.GOOGLE_CALLBACK_URL;
+// const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+// const callbackUrl = process.env.GOOGLE_CALLBACK_URL;
 
 if(!secret) {
     throw new Error('JWT secret is not defined');
@@ -63,62 +63,61 @@ export const createUser: RequestHandler = async (req, res, next) => {
     }
 }
 
+// export const googleAuth: RequestHandler = async (req, res) => {
+//     try {
+//         const { token } = req.body;
+//         const ticket = await client.verifyIdToken({
+//             idToken: token,
+//             audience: process.env.GOOGLE_CLIENT_ID
+//         });
+//         const payload = ticket.getPayload();
+//         if (!payload) {
+//             return res.status(400).json({ message: 'Invalid token' });
+//         }
 
-export const googleAuth: RequestHandler = async (req, res) => {
-    try {
-        const { token } = req.body;
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
-        const payload = ticket.getPayload();
-        if (!payload) {
-            return res.status(400).json({ message: 'Invalid token' });
-        }
+//         const { email, name, picture } = payload;
 
-        const { email, name, picture } = payload;
+//         let user = await User.findOne({ where: { email } });
 
-        let user = await User.findOne({ where: { email } });
+//         if (!user) {
+//             // Create new user
+//             user = await User.create({
+//                 userId: generateSnowflakeId(), // Generate a new userId
+//                 email: email ?? '',
+//                 name: name ?? '',
+//                 password: null,
+//                 isGoogleAuth: true,
+//                 imgUrl: picture ?? '',
+//                 tier: 'Just Looking',
+//                 paymentFrequency: 'monthly',
+//                 dateOfBirth: '1900-01-01', // Provide a default date of birth as a string
+//                 // Add other necessary fields with default values
+//             });
 
-        if (!user) {
-            // Create new user
-            user = await User.create({
-                userId: generateSnowflakeId(), // Generate a new userId
-                email: email ?? '',
-                name: name ?? '',
-                password: null,
-                isGoogleAuth: true,
-                imgUrl: picture ?? '',
-                tier: 'Just Looking',
-                paymentFrequency: 'monthly',
-                dateOfBirth: '1900-01-01', // Provide a default date of birth as a string
-                // Add other necessary fields with default values
-            });
+//             // Create initial payment record
+//             await Payment.create({
+//                 userId: user.userId,
+//                 tier: 'Just Looking',
+//                 price: 0, 
+//                 paymentType: 'subscription'
+//             } as Payment);
+//         }
 
-            // Create initial payment record
-            await Payment.create({
-                userId: user.userId,
-                tier: 'Just Looking',
-                price: 0, 
-                paymentType: 'subscription'
-            } as Payment);
-        }
+//         // Generate JWT
+//         const jwtToken = await signUserToken(user);
 
-        // Generate JWT
-        const jwtToken = await signUserToken(user);
-
-        res.status(200).json({
-            email: user.email,
-            userId: user.userId,
-            tier: user.tier,
-            paymentFrequency: user.paymentFrequency,
-            token: jwtToken
-        });
-    } catch (error) {
-        console.error('Error during Google authentication:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-};
+//         res.status(200).json({
+//             email: user.email,
+//             userId: user.userId,
+//             tier: user.tier,
+//             paymentFrequency: user.paymentFrequency,
+//             token: jwtToken
+//         });
+//     } catch (error) {
+//         console.error('Error during Google authentication:', error);
+//         res.status(500).json({ message: 'Internal server error' });
+//     }
+// };
 
 // export const loginUser: RequestHandler = async (req, res, next) => {
 //     console.log('Login request body:', req.body);
