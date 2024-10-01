@@ -24,7 +24,7 @@ module.exports = {
         await queryInterface.addColumn('users', 'dateOfBirth', {
           type: Sequelize.STRING,
           allowNull: false,
-          defaultValue: '1900-01-01'
+          defaultValue: '01/01/1990'
         }, { transaction });
       }
 
