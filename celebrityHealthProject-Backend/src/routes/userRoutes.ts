@@ -39,6 +39,7 @@ const router = Router();
 // Define your user routes
 router.post('/', createUser);
 router.post('/login', loginUser);
+// router.post('/google-auth', googleAuth); 
 router.get('/', getAllUsers);
 router.get('/:id', getUser);
 router.put('/data/:id', updateUser);
@@ -46,6 +47,8 @@ router.delete('/:id', deleteUser);
 router.post('/check-email', checkEmail);
 router.post('/check-password/:id', checkPassword);
 router.put('/update-password/:id', updatePassword);
+
+export default router;
 
 // Protected route to get current user info
 // router.get('/me', authenticateJWT, (req, res) => {
@@ -58,4 +61,3 @@ router.put('/update-password/:id', updatePassword);
 //     }
 //   });
 
-export default router;
