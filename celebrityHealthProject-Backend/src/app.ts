@@ -132,7 +132,11 @@ app.get('/api/auth/google', (req: Request, res: Response) => {
         console.log(`Existing user found: ${user.userId}`);
          // Update user information if needed
          user.name = data.name || user.name;
-         user.imgUrl = data.picture || user.imgUrl;
+        //  user.imgUrl = data.picture || user.imgUrl;
+        // Only update imgUrl if it's not already set to a custom image
+            if (!user.imgUrl || user.imgUrl.startsWith('https://lh3.googleusercontent.com/')) {
+                user.imgUrl = data.picture || user.imgUrl;
+            }
          await user.save();
       }
   
@@ -148,7 +152,8 @@ app.get('/api/auth/google', (req: Request, res: Response) => {
             userId: user.userId,
             email: user.email,
             name: user.name,
-            tier: user.tier
+            tier: user.tier,
+            billing: user.paymentFrequency
           }
         }
       });

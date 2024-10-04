@@ -382,7 +382,7 @@ export const updateUser: RequestHandler = async (req, res, next) => {
         // Fields that can be updated
         const updatableFields: (keyof User)[] = [
             'email', 'name', 'weight', 'height', 'gender',
-            'goals', 'tier', 'dateOfBirth', 'imgUrl', 'price', 'paymentFrequency'
+            'goals', 'tier', 'dateOfBirth', 'price', 'paymentFrequency'
         ];
 
         updatableFields.forEach((field) => {
@@ -390,6 +390,11 @@ export const updateUser: RequestHandler = async (req, res, next) => {
                 (userToUpdate as any)[field] = updateData[field];
             }
         });
+
+        // Handle imgUrl separately
+        if (updateData.imgUrl) {
+            userToUpdate.imgUrl = updateData.imgUrl;
+        }
 
         await userToUpdate.save();
 
