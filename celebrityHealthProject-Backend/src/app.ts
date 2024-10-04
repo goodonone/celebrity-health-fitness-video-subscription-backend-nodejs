@@ -75,97 +75,179 @@ const client = new OAuth2Client({
   
 //   console.log('JWT_SECRET:', process.env.JWT_SECRET); // Check if JWT_SECRET is being loaded
 
-app.get('/api/auth/google', (req: Request, res: Response) => {
-    console.log('Google OAuth initiation route hit');
-    console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
-    console.log('SERVER_URL:', process.env.SERVER_URL);
+// app.get('/api/auth/google', (req: Request, res: Response) => {
+//     // console.log('Google OAuth initiation route hit');
+//     // console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+//     // console.log('SERVER_URL:', process.env.SERVER_URL);
 
-    const authUrl = client.generateAuthUrl({
+//     const authUrl = client.generateAuthUrl({
+//       access_type: 'offline',
+//       scope: ['profile', 'email'],
+//       redirect_uri: `${process.env.SERVER_URL}/api/auth/google/callback`
+//     });
+//     res.redirect(authUrl);
+//   });
+
+//   app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
+//     console.log('Google OAuth callback route hit');
+//     const { code } = req.query;
+    
+//     if (!code) {
+//       console.error('Missing authorization code');
+//       return sendResponse(res, {
+//         type: 'GOOGLE_AUTH_ERROR',
+//         error: 'Missing authorization code'
+//       });
+//     }
+
+//     console.log('OAuth callback route hit');
+  
+//     try {
+//       // console.log('Attempting to exchange code for tokens');
+//       const { tokens } = await client.getToken(code as string);
+//       // console.log('Tokens received');
+//       client.setCredentials(tokens);
+  
+//       // console.log('Fetching user info');
+//       const oauth2 = google.oauth2({ version: 'v2', auth: client });
+//       const { data } = await oauth2.userinfo.get();
+  
+//       console.log('Received user data:', data);
+  
+//       // let user = await User.findOne({ where: { email: data.email || '' } });
+  
+//       if (!user) {
+//         user = await User.create({
+//           userId: idGenerator.getUniqueID().toString(),
+//           email: data.email || '',
+//           name: data.name || '',
+//           imgUrl: data.picture || '',
+//           isGoogleAuth: true,
+//           tier: 'Just Looking',
+//           paymentFrequency: 'monthly',
+//           dateOfBirth: '01/01/1990',
+//         });
+//         console.log(`New user created: ${user.userId}`);
+//       } else {
+//         console.log(`Existing user found: ${user.userId}`);
+//          // Update user information if needed
+//          user.name = data.name || user.name;
+//         // Only update imgUrl if it's not already set to a custom image
+//             if (!user.imgUrl || user.imgUrl.startsWith('https://lh3.googleusercontent.com/')) {
+//                 user.imgUrl = data.picture || user.imgUrl;
+//             }
+//          await user.save();
+//       }
+  
+//       const token = await signUserToken(user);
+  
+//       console.log(`Successful authentication for user: ${user.userId}`);
+  
+//       return sendResponse(res, {
+//         type: 'GOOGLE_AUTH_SUCCESS',
+//         payload: {
+//           token: token,
+//           user: {
+//             userId: user.userId,
+//             email: user.email,
+//             name: user.name,
+//             tier: user.tier,
+//             billing: user.paymentFrequency
+//           }
+//         }
+//       });
+  
+//     } catch (error) {
+//       console.error('Detailed error during Google authentication:', error);
+//       return sendResponse(res, {
+//         type: 'GOOGLE_AUTH_ERROR',
+//         error: 'Authentication failed'
+//       });
+//     }
+//   });
+
+app.get('/api/auth/google', (req: Request, res: Response) => {
+  console.log('Google OAuth initiation route hit');
+  const authUrl = client.generateAuthUrl({
       access_type: 'offline',
       scope: ['profile', 'email'],
-      redirect_uri: `${process.env.SERVER_URL}/api/auth/google/callback`
-    });
-    res.redirect(authUrl);
+      redirect_uri: `${process.env.SERVER_URL}/api/auth/google/callback`,
+      state: req.query.signup ? 'signup' : 'login' // Pass the signup parameter
   });
+  res.redirect(authUrl);
+});
 
-  app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
-    console.log('Google OAuth callback route hit');
-    const { code } = req.query;
-    
-    if (!code) {
+app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
+  console.log('Google OAuth callback route hit');
+  const { code } = req.query;
+  
+  if (!code) {
       console.error('Missing authorization code');
       return sendResponse(res, {
-        type: 'GOOGLE_AUTH_ERROR',
-        error: 'Missing authorization code'
+          type: 'GOOGLE_AUTH_ERROR',
+          error: 'Missing authorization code'
       });
-    }
+  }
 
-    console.log('OAuth callback route hit');
-  
-    try {
-      console.log('Attempting to exchange code for tokens');
+  try {
       const { tokens } = await client.getToken(code as string);
-      console.log('Tokens received');
       client.setCredentials(tokens);
-  
-      console.log('Fetching user info');
+
       const oauth2 = google.oauth2({ version: 'v2', auth: client });
       const { data } = await oauth2.userinfo.get();
-  
+
       console.log('Received user data:', data);
-  
-      let user = await User.findOne({ where: { email: data.email || '' } });
-  
-      if (!user) {
-        user = await User.create({
-          userId: idGenerator.getUniqueID().toString(),
-          email: data.email || '',
-          name: data.name || '',
-          imgUrl: data.picture || '',
-          isGoogleAuth: true,
-          tier: 'Just Looking',
-          paymentFrequency: 'monthly',
-          dateOfBirth: '01/01/1990',
-        });
-        console.log(`New user created: ${user.userId}`);
-      } else {
-        console.log(`Existing user found: ${user.userId}`);
-         // Update user information if needed
-         user.name = data.name || user.name;
-        //  user.imgUrl = data.picture || user.imgUrl;
-        // Only update imgUrl if it's not already set to a custom image
-            if (!user.imgUrl || user.imgUrl.startsWith('https://lh3.googleusercontent.com/')) {
-                user.imgUrl = data.picture || user.imgUrl;
-            }
-         await user.save();
-      }
-  
-      const token = await signUserToken(user);
-  
-      console.log(`Successful authentication for user: ${user.userId}`);
-  
-      return sendResponse(res, {
-        type: 'GOOGLE_AUTH_SUCCESS',
-        payload: {
-          token: token,
-          user: {
-            userId: user.userId,
-            email: user.email,
-            name: user.name,
-            tier: user.tier,
-            billing: user.paymentFrequency
+
+      await db.transaction(async (t) => {
+          const [user, created] = await User.findOrCreate({
+              where: { email: data.email || '' },
+              defaults: {
+                  userId: idGenerator.getUniqueID().toString(),
+                  name: data.name || '',
+                  email: data.email || '',
+                  imgUrl: data.picture || '',
+                  isGoogleAuth: true,
+                  tier: 'Just Looking',
+                  paymentFrequency: 'monthly',
+                  dateOfBirth: '01/01/1990',
+              },
+              transaction: t
+          });
+
+          if (!created) {
+              // Update existing user information
+              await user.update({
+                  name: data.name || user.name,
+                  imgUrl: data.picture || user.imgUrl,
+                  isGoogleAuth: true
+              }, { transaction: t });
           }
-        }
+
+          const token = await signUserToken(user);
+
+          console.log(`${created ? 'New' : 'Existing'} user authenticated: ${user.userId}`);
+
+          return sendResponse(res, {
+              type: 'GOOGLE_AUTH_SUCCESS',
+              payload: {
+                  token: token,
+                  user: {
+                      userId: user.userId,
+                      email: user.email,
+                      name: user.name,
+                      tier: user.tier
+                  }
+              }
+          });
       });
-  
-    } catch (error) {
+  } catch (error) {
       console.error('Detailed error during Google authentication:', error);
       return sendResponse(res, {
-        type: 'GOOGLE_AUTH_ERROR',
-        error: 'Authentication failed'
+          type: 'GOOGLE_AUTH_ERROR',
+          error: 'Authentication failed'
       });
-    }
-  });
+  }
+});
 
 
 function sendResponse(res: Response, data: any) {
@@ -233,7 +315,7 @@ app.use((req: Request, res: Response) => {
 // });
 
 // Initialize models and set up associations
-AssociateAllModels(db);
+// AssociateAllModels(db);
 
 
 
@@ -261,7 +343,11 @@ async function initializeDatabase() {
         console.log("Model associations set up successfully");
 
         // Sync the models with the database
-        await db.sync({ alter: true });
+        // await db.sync({ alter: true });
+        if (process.env.NODE_ENV === 'development') {
+          await db.sync({ alter: true });
+          console.log("Database synchronized in development mode");
+      }
 
         console.log("Database initialization completed successfully");
     } catch (error) {

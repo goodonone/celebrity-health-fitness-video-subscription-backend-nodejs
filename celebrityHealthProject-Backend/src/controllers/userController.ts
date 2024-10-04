@@ -186,7 +186,7 @@ export const loginUser: RequestHandler = async (req, res) => {
 
         // Compare the entered password with the stored hashed password
         const passwordsMatch = await comparePasswords(password, user.password);
-        console.log('Passwords match:', passwordsMatch);
+        // console.log('Passwords match:', passwordsMatch);
 
         // If passwords do not match, return 401 status with an 'Invalid credentials' message
         if (!passwordsMatch) {
