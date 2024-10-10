@@ -47,6 +47,7 @@ router.delete('/:id', deleteUser);
 router.post('/check-email', checkEmail);
 router.post('/check-password/:id', checkPassword);
 router.put('/update-password/:id', updatePassword);
+// router.get('/check-user-exists/:email', checkUserExists);
 
 export default router;
 
