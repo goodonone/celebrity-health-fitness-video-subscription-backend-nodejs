@@ -40,6 +40,7 @@ function sanitizeUser(user: User) {
       gender: user.gender,
       goals: user.goals,
       dateOfBirth: user.dateOfBirth,
+      profilePictureSettings: user.profilePictureSettings,
     //   createdAt: user.createdAt,
     //   updatedAt: user.updatedAt
       // Add any other non-sensitive fields you want to include
@@ -400,18 +401,27 @@ export const updateUser: RequestHandler = async (req, res, next) => {
         // Fields that can be updated
         const updatableFields: (keyof User)[] = [
             'email', 'name', 'weight', 'height', 'gender',
-            'goals', 'tier', 'dateOfBirth', 'price', 'paymentFrequency'
+            'goals', 'tier', 'dateOfBirth', 'price', 'paymentFrequency', 'profilePictureSettings'
         ];
 
+        // updatableFields.forEach((field) => {
+        //     if (updateData[field] !== undefined) {
+        //         (userToUpdate as any)[field] = updateData[field];
+        //     }
         updatableFields.forEach((field) => {
-            if (updateData[field] !== undefined) {
+            if (updateData.hasOwnProperty(field)) {
                 (userToUpdate as any)[field] = updateData[field];
             }
         });
+        // });
 
         // Handle imgUrl separately
-        if (updateData.imgUrl) {
-            userToUpdate.imgUrl = updateData.imgUrl;
+        // if (updateData.imgUrl) {
+        //     userToUpdate.imgUrl = updateData.imgUrl;
+        // }
+        // Handle imgUrl separately
+        if (updateData.hasOwnProperty('imgUrl')) {
+            userToUpdate.imgUrl = updateData.imgUrl!;
         }
 
         await userToUpdate.save();

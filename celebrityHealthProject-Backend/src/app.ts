@@ -19,6 +19,7 @@ import cartRoutes from './routes/cartRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import path from 'path';
 import fs from 'fs';
+import { profile } from 'console';
 
 dotenv.config();
 
@@ -187,6 +188,7 @@ app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
               gender: existingUser.gender,
               dateOfBirth: existingUser.dateOfBirth,
               goals: existingUser.goals,
+              profilePictureSettings: existingUser.profilePictureSettings,
               isGoogleAuth: existingUser.isGoogleAuth
             }
           }
@@ -226,30 +228,13 @@ function sendResponse(res: Response, data: any) {
         function sendMessageToOpener() {
           if (window.opener && !window.opener.closed) {
             console.log('window.opener is available');
-            window.opener.postMessage(${JSON.stringify(data)}, '*');
+            window.opener.postMessage(${JSON.stringify(data)}, '${process.env.FRONTEND_URL}');
             console.log('Message sent to opener');
-            setTimeout(() => window.close(), 1500); // Close after 2 seconds
+            setTimeout(() => window.close(), 1500); // Close after 1.5 seconds
           } else {
             console.log('window.opener is not available');
           }
         }
-
-        // Font Awesome loading diagnostic
-        window.addEventListener('load', function() {
-          var span = document.createElement('span');
-          span.className = 'fa';
-          span.style.display = 'none';
-          document.body.insertBefore(span, document.body.firstChild);
-          
-          if (window.getComputedStyle(span).fontFamily !== 'FontAwesome') {
-            console.error('Font Awesome is not loaded');
-            document.getElementById('fa-diagnostic').textContent = 'Font Awesome failed to load';
-          } else {
-            console.log('Font Awesome is loaded successfully');
-            document.getElementById('fa-diagnostic').textContent = 'Font Awesome loaded successfully';
-          }
-          
-          document.body.removeChild(span);
       </script>
 
       
@@ -257,11 +242,10 @@ function sendResponse(res: Response, data: any) {
         body { font-family: Times New Roman; text-align: center; padding-top: 10px; background-color: ${backgroundColor};}
         h1 { ${data.type === 'GOOGLE_AUTH_SUCCESS'}; font-size: 36px; font-weight: bold; padding-right: 21px; padding-top: 5px;}
         p { margin-top: 20px; font-size:20px; padding-right: 21px; line-height: 1.4; }
-        .flexContainer { display: flex; flex-direction: row; justify-content: space-between; width: 230px;}
-        .logo { max-width: 140px; height: auto; margin-bottom: 30px; text-align: left; }
-        .google-icon { width: 30px; height: 30px; margin-right: 8px; padding-bottom: 30px }
-        .x-icon { font-size: 15px; color: rgb(0, 0, 0); font-weight: 300;padding-top: 10px; }
-        #fa-diagnostic { font-size: 12px; margin-top: 10px; }
+        .flexContainer { display: flex; flex-direction: row; justify-content: space-between; width: 180px;}
+        .logo { max-width: 120px; height: auto; margin-bottom: 30px; text-align: left; }
+        .google-icon { width: 25px; height: 25px; margin-right: 8px; padding-bottom: 30px }
+        .x-icon { font-size: 12px; color: rgb(0, 0, 0); font-weight: 300;padding-top: 10px; }
       </style>
     </head>
     <body onload="sendMessageToOpener()">
