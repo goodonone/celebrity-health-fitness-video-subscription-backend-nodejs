@@ -24,9 +24,9 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare imgUrl: string | null;
     declare price: number | null;
     declare paymentFrequency: string | null;
+    declare profilePictureSettings: string | null;
     declare createdAt?: Date;
     declare updatedAt?: Date;
-
     
 }
 
@@ -99,6 +99,17 @@ export function UserFactory(sequelize: Sequelize): typeof User {
             type: DataTypes.STRING,
             allowNull: false,
             defaultValue: 'monthly'
+        },
+        profilePictureSettings: {
+            type: DataTypes.TEXT, 
+            allowNull: true,
+            get() {
+                const rawValue = this.getDataValue('profilePictureSettings');
+                return rawValue ? JSON.parse(rawValue) : null;
+            },
+            set(value: any) {
+                this.setDataValue('profilePictureSettings', JSON.stringify(value));
+            }
         },
         createdAt: {
             type: DataTypes.DATE,
