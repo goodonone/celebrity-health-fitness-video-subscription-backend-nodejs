@@ -25,8 +25,8 @@ export const hashPassword = async (plainTextPassword: string) => {
 // }
 
 export const comparePasswords = async (plainTextPassword: string, hashPassword: string) => {
-    console.log('Plain Text Password:', plainTextPassword);
-    console.log('Hashed Password:', hashPassword);
+    // console.log('Plain Text Password:', plainTextPassword);
+    // console.log('Hashed Password:', hashPassword);
     return await bcrypt.compare(plainTextPassword, hashPassword);
 };
 

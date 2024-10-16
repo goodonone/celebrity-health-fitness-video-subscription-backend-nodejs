@@ -25,6 +25,28 @@ if(!secret) {
     throw new Error('JWT secret is not defined');
 }
 
+function sanitizeUser(user: User) {
+    return {
+      userId: user.userId,
+      email: user.email,
+      name: user.name,
+      tier: user.tier,
+      billing: user.paymentFrequency,
+      imgUrl: user.imgUrl,
+      price: user.price,
+      isGoogleAuth: user.isGoogleAuth,
+      weight: user.weight,
+      height: user.height,
+      gender: user.gender,
+      goals: user.goals,
+      dateOfBirth: user.dateOfBirth,
+      profilePictureSettings: user.profilePictureSettings,
+    //   createdAt: user.createdAt,
+    //   updatedAt: user.updatedAt
+      // Add any other non-sensitive fields you want to include
+    };
+  }
+
 export const createUser: RequestHandler = async (req, res, next) => {
     let newUser: User = req.body;
 
@@ -173,11 +195,11 @@ export const loginUser: RequestHandler = async (req, res) => {
 
         // If user is not found, return 401 status with a 'User not found' message
         if (!user) {
-            return res.status(401).json({ message: 'User not found' });
+            return res.status(401).json({ message: 'User not found. Please sign up first.' });
         }
 
         if (user.password === null) {
-            return res.status(401).json({ message: 'Invalid login method' });
+            return res.status(401).json({ message: 'Invalid login method. Please use Google Sign-In.' });
         }
 
         // Debug: Log the stored hashed password and the entered plain password
@@ -186,7 +208,7 @@ export const loginUser: RequestHandler = async (req, res) => {
 
         // Compare the entered password with the stored hashed password
         const passwordsMatch = await comparePasswords(password, user.password);
-        console.log('Passwords match:', passwordsMatch);
+        // console.log('Passwords match:', passwordsMatch);
 
         // If passwords do not match, return 401 status with an 'Invalid credentials' message
         if (!passwordsMatch) {
@@ -198,10 +220,7 @@ export const loginUser: RequestHandler = async (req, res) => {
 
         // Return user information and the token
         return res.status(200).json({
-            email: user.email,
-            userId: user.userId,
-            tier: user.tier,
-            billing: user.paymentFrequency,
+            ...sanitizeUser(user),
             token
         });
     } catch (error) {
@@ -296,7 +315,7 @@ export const getUser: RequestHandler = async (req, res, next) => {
 
     // let user: User | null = await verifyToken(req);
     if (userFound && userFound.userId === user.userId) {
-        res.status(200).json(user);
+        res.status(200).json(sanitizeUser(userFound));
     }
     else {
         res.status(404).json({});
@@ -382,39 +401,33 @@ export const updateUser: RequestHandler = async (req, res, next) => {
         // Fields that can be updated
         const updatableFields: (keyof User)[] = [
             'email', 'name', 'weight', 'height', 'gender',
-            'goals', 'tier', 'dateOfBirth', 'price', 'paymentFrequency'
+            'goals', 'tier', 'dateOfBirth', 'price', 'paymentFrequency', 'profilePictureSettings'
         ];
 
+        // updatableFields.forEach((field) => {
+        //     if (updateData[field] !== undefined) {
+        //         (userToUpdate as any)[field] = updateData[field];
+        //     }
         updatableFields.forEach((field) => {
-            if (updateData[field] !== undefined) {
+            if (updateData.hasOwnProperty(field)) {
                 (userToUpdate as any)[field] = updateData[field];
             }
         });
+        // });
 
         // Handle imgUrl separately
-        if (updateData.imgUrl) {
-            userToUpdate.imgUrl = updateData.imgUrl;
+        // if (updateData.imgUrl) {
+        //     userToUpdate.imgUrl = updateData.imgUrl;
+        // }
+        // Handle imgUrl separately
+        if (updateData.hasOwnProperty('imgUrl')) {
+            userToUpdate.imgUrl = updateData.imgUrl!;
         }
 
         await userToUpdate.save();
 
         // Create a new object with only the fields we want to send back
-        const userResponse = {
-            userId: userToUpdate.userId,
-            email: userToUpdate.email,
-            name: userToUpdate.name,
-            weight: userToUpdate.weight,
-            height: userToUpdate.height,
-            gender: userToUpdate.gender,
-            goals: userToUpdate.goals,
-            tier: userToUpdate.tier,
-            dateOfBirth: userToUpdate.dateOfBirth,
-            imgUrl: userToUpdate.imgUrl,
-            price: userToUpdate.price,
-            paymentFrequency: userToUpdate.paymentFrequency,
-            createdAt: userToUpdate.createdAt,
-            updatedAt: userToUpdate.updatedAt
-        };
+        const userResponse = sanitizeUser(userToUpdate);
 
         res.status(200).json(userResponse);
     } catch (error) {
@@ -471,6 +484,25 @@ export const checkEmail: RequestHandler = async (req, res, next) => {
         return res.status(500).json({ error: 'Server error' });
     }
 }
+
+
+// export const checkUserExists: RequestHandler = async (req, res) => {
+//   const { email } = req.params;
+
+//   if (!email) {
+//     return res.status(400).json({ error: 'Email is required' });
+//   }
+
+//   try {
+//     const user = await User.findOne({ where: { email } });
+//     res.json(!!user); // Returns true if user exists, false otherwise
+//   } catch (error) {
+//     console.error('Error checking user existence:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
+
+// ... rest of the file ...
 
 export const checkPassword: RequestHandler = async (req, res, next) => {
     let user: User | null = await verifyToken(req);

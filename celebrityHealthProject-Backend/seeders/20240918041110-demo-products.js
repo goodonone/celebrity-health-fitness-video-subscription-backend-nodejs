@@ -17,7 +17,7 @@ module.exports = {
         productName:"Dumbbell",
         productPrice:80,
         productDescription:"Tumblr man braid vinyl whatever bodega boys, keffiyeh mumblecore yes plz. Unicorn vegan four dollar toast taxidermy, vaporware tote bag tacos distillery vibecession austin messenger bag. ",
-        productUrl:"https://images.unsplash.com/photo-1638536532686-d610adfc8e5c?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D”,“createdAt”:“2023-12-19T11:06:18.000Z”,“updatedAt”:“2023-12-19T11:06:18.000Z"
+        productUrl:"https://images.unsplash.com/photo-1703668984128-b506579acdd2?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NDh8fGR1bWJlbGxzfGVufDB8fDB8fHww"
       },
     
       {
@@ -30,9 +30,10 @@ module.exports = {
         productName:"Barbell",
         productPrice:95,
         productDescription:"Salvia flexitarian meh, four dollar toast retro hexagon cray pabst before they sold out dreamcatcher microdosing literally. ",
-        productUrl:"https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D”,“createdAt”:“2023-12-19T11:19:38.000Z”,“updatedAt”:“2023-12-19T11:19:38.000Z"},
+        productUrl:"https://images.pexels.com/photos/2261481/pexels-photo-2261481.jpeg?auto=compress&cs=tinysrgb&w=800"
+      },
       {
-        productName:"Shirt",
+        productName:"T-Shirts",
         productPrice:60,
         productDescription:"Occupy keytar kogi fashion axe mustache tote bag ramps gatekeep whatever gastropub shaman. Lo-fi neutral milk hotel locavore retro fam fingerstache. ",
         productUrl:"https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=3000&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -59,13 +60,14 @@ module.exports = {
         productName:"Leggings",
         productPrice:55,
         productDescription:"Literally iceland green juice solarpunk, next level jawn wayfarers vape direct trade. Ethical live-edge shoreditch, activated charcoal tofu hexagon vegan wayfarers jean shorts squid. ",
-        productUrl:"https://images.unsplash.com/photo-1538805060514-97d9cc17730c?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D”,“createdAt”:“2023-12-19T11:33:53.000Z”,“updatedAt”:“2023-12-19T11:33:53.000Z"
-      },
+        // productUrl:"https://images.pexels.com/photos/7880080/pexels-photo-7880080.jpeg?auto=compress&cs=tinysrgb&w=800"
+        productUrl:"https://images.pexels.com/photos/7593007/pexels-photo-7593007.jpeg?auto=compress&cs=tinysrgb&w=800"      
+        },
       {
         productName:"The Rope",
         productPrice:70,
         productDescription:"Air plant direct trade ugh slow-carb butcher activated charcoal. PBR&B blackbird spyplane jawn try-hard. Whatever brunch flexitarian church-key. ",
-        productUrl:"https://images.pexels.com/photos/4164762/pexels-photo-4164762.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+        productUrl:"https://images.pexels.com/photos/7671467/pexels-photo-7671467.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
       },
       {
         productName:"MedBall",

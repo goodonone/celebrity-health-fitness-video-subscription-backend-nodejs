@@ -3,14 +3,11 @@
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.sequelize.transaction(async (transaction) => {
-      // Check if isGoogleAuth column exists before adding
       const columns = await queryInterface.describeTable('users');
-      if (!columns.isGoogleAuth) {
-        await queryInterface.addColumn('users', 'isGoogleAuth', {
-          type: Sequelize.BOOLEAN,
-          allowNull: false,
-          defaultValue: false
-        }, { transaction });
+      
+      // Remove isGoogleAuth column if it exists
+      if (columns.isGoogleAuth) {
+        await queryInterface.removeColumn('users', 'isGoogleAuth', { transaction });
       }
 
       // Modify password column to allow null
@@ -19,7 +16,7 @@ module.exports = {
         allowNull: true
       }, { transaction });
 
-      // Check if dateOfBirth column exists before adding
+      // Add dateOfBirth column if it doesn't exist
       if (!columns.dateOfBirth) {
         await queryInterface.addColumn('users', 'dateOfBirth', {
           type: Sequelize.STRING,
@@ -27,18 +24,27 @@ module.exports = {
           defaultValue: '01/01/1990'
         }, { transaction });
       }
-
-      // Add any other new columns or modify existing ones as needed
     });
   },
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.sequelize.transaction(async (transaction) => {
-      // Check if isGoogleAuth column exists before removing
       const columns = await queryInterface.describeTable('users');
-      if (columns.isGoogleAuth) {
-        await queryInterface.removeColumn('users', 'isGoogleAuth', { transaction });
+      
+      // Add isGoogleAuth column back
+      if (!columns.isGoogleAuth) {
+        await queryInterface.addColumn('users', 'isGoogleAuth', {
+          type: Sequelize.BOOLEAN,
+          allowNull: false,
+          defaultValue: false
+        }, { transaction });
       }
+
+      // Update any NULL passwords to an empty string before changing the column
+      await queryInterface.sequelize.query(
+        'UPDATE users SET password = \'\' WHERE password IS NULL',
+        { transaction }
+      );
 
       // Revert password column to not allow null
       await queryInterface.changeColumn('users', 'password', {
@@ -46,12 +52,10 @@ module.exports = {
         allowNull: false
       }, { transaction });
 
-      // Check if dateOfBirth column exists before removing
+      // Remove dateOfBirth column if it exists
       if (columns.dateOfBirth) {
         await queryInterface.removeColumn('users', 'dateOfBirth', { transaction });
       }
-
-      // Revert any other changes made in the 'up' function
     });
   }
 };
