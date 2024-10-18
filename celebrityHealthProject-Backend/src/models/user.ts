@@ -25,6 +25,8 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare price: number | null;
     declare paymentFrequency: string | null;
     declare profilePictureSettings: string | null;
+    declare resetPasswordToken: string | null; 
+    declare resetPasswordExpires: Date | null; 
     declare createdAt?: Date;
     declare updatedAt?: Date;
     
@@ -110,6 +112,14 @@ export function UserFactory(sequelize: Sequelize): typeof User {
             set(value: any) {
                 this.setDataValue('profilePictureSettings', JSON.stringify(value));
             }
+        },
+        resetPasswordToken: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        resetPasswordExpires: {
+            type: DataTypes.DATE,
+            allowNull: true
         },
         createdAt: {
             type: DataTypes.DATE,

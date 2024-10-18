@@ -12,6 +12,9 @@ import { Payment } from './models/payment';
 import { signUserToken } from './services/auth';
 import { Snowflake } from "nodejs-snowflake";
 import { google } from 'googleapis';
+import sgMail from '@sendgrid/mail';
+import crypto from 'crypto';
+import { Op } from 'sequelize';
 
 import userRoutes from './routes/userRoutes';
 import productRoutes from './routes/productRoutes';
@@ -27,25 +30,28 @@ const execPromise = util.promisify(exec);
 
 const app = express();
 
+// Initialize SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+
 // Serve static files from the 'public' directory
 const publicPath = path.join(__dirname, '..', 'public');
 console.log('Static files directory:', publicPath);
 app.use(express.static(publicPath));
 
 
-app.get('/debug-list-images', (req: Request, res: Response) => {
-  const imagesPath = path.join(__dirname, '..', 'public', 'images');
-  console.log('Checking directory:', imagesPath);
-  fs.readdir(imagesPath, (err, files) => {
-    if (err) {
-      console.error('Error reading directory:', err);
-      res.status(500).send('Error reading images directory');
-    } else {
-      console.log('Files in images directory:', files);
-      res.json(files);
-    }
-  });
-});
+// app.get('/debug-list-images', (req: Request, res: Response) => {
+//   const imagesPath = path.join(__dirname, '..', 'public', 'images');
+//   console.log('Checking directory:', imagesPath);
+//   fs.readdir(imagesPath, (err, files) => {
+//     if (err) {
+//       console.error('Error reading directory:', err);
+//       res.status(500).send('Error reading images directory');
+//     } else {
+//       console.log('Files in images directory:', files);
+//       res.json(files);
+//     }
+//   });
+// });
 
 // CORS configuration
 app.use(cors({
@@ -204,6 +210,140 @@ app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
   }
 });
 
+// New route for password reset request
+app.post('/api/reset-password', async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const token = crypto.randomBytes(20).toString('hex');
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour from now
+    await user.save();
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+
+    const logoPath = path.join(__dirname, '..', 'public', 'images', 'ProjectLogo.png');
+    const logoContent = fs.readFileSync(logoPath).toString('base64');
+
+    const msg: sgMail.MailDataRequired = {
+      to: email,
+      from: process.env.SENDGRID_FROM_EMAIL!,
+      subject: 'Password Reset Request',
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password</title>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #c7ff20;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #c7ff20;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .logo {
+            max-width: 120px;
+            height: auto;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-top: 3rem;
+            margin-bottom: 3rem;
+        }
+        p {
+            margin-bottom: 3rem;
+        }
+        .reset-button {
+            display: inline-block;
+            width: 20rem;
+            height: 2.5rem;
+            line-height: 2.5rem;
+            background-color: #ffffff;
+            color: #000000;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="cid:logo" alt="Hugh Jackedman Logo" class="logo">
+        <h1>Reset Password</h1>
+        <p>A Reset Password request was sent and this is your reset link. Please disregard if you are unaware of this request.</p>
+        <a href="${resetUrl}" class="reset-button">Reset</a>
+        <div class="footer">
+            <p>Regards,<br>The Hugh Jackedman Team</p>
+        </div>
+    </div>
+</body>
+</html>`,
+      attachments: [
+        {
+          filename: 'ProjectLogo.png',
+          type: 'image/png',
+          content: logoContent,
+          disposition: 'inline',
+          contentId: 'logo'
+        }
+      ]
+    };
+
+    await sgMail.send(msg);
+
+    res.status(200).json({ message: 'Reset password instructions sent' });
+  } catch (error) {
+    console.error('Error in reset password:', error);
+    res.status(500).json({ message: 'Error in reset password process' });
+  }
+});
+
+// New route to handle password reset
+app.post('/api/reset-password/:token', async (req: Request, res: Response) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const user = await User.findOne({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: { [Op.gt]: new Date() }
+      }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Password reset token is invalid or has expired' });
+    }
+
+    user.password = password;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.status(200).json({ message: 'Password has been reset' });
+  } catch (error) {
+    console.error('Error in reset password:', error);
+    res.status(500).json({ message: 'Error in reset password process' });
+  }
+});
+
 function sendResponse(res: Response, data: any) {
   console.log('Backend: Preparing to send response:', data);
   console.log('Current directory:', __dirname);
@@ -329,6 +469,8 @@ async function runCommand(command: string) {
         throw error;
     }
 }
+
+
 
 // Initialize database and start the server
 initializeDatabase()

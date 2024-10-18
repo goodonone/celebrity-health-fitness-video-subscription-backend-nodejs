@@ -31,7 +31,7 @@
 // export default router;
 
 import { Router } from 'express';
-import { createUser, loginUser, getUser, getAllUsers, updateUser, deleteUser, checkEmail, checkPassword, updatePassword } from '../controllers/userController';
+import { createUser, loginUser, getUser, getAllUsers, updateUser, deleteUser, checkEmail, checkPassword, updatePassword, requestPasswordReset, resetPassword } from '../controllers/userController';
 
 
 const router = Router();
@@ -47,6 +47,8 @@ router.delete('/:id', deleteUser);
 router.post('/check-email', checkEmail);
 router.post('/check-password/:id', checkPassword);
 router.put('/update-password/:id', updatePassword);
+router.post('/request-reset', requestPasswordReset);
+router.post('/reset-password/:token', resetPassword);
 // router.get('/check-user-exists/:email', checkUserExists);
 
 export default router;

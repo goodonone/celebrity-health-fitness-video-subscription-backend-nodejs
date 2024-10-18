@@ -6,6 +6,9 @@ import jwt from 'jsonwebtoken';
 import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../services/auth";
 import { OAuth2Client } from 'google-auth-library';
 import { Snowflake } from "nodejs-snowflake";
+import sgMail from '@sendgrid/mail';
+import { Op } from 'sequelize';
+import crypto from 'crypto';
 
 const idGenerator = new Snowflake({
     custom_epoch: 1725148800000,
@@ -18,6 +21,7 @@ function generateSnowflakeId(): string {
 
 const secret = process.env.JWT_SECRET
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 // const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 // const callbackUrl = process.env.GOOGLE_CALLBACK_URL;
 
@@ -555,3 +559,65 @@ export const updatePassword: RequestHandler = async (req, res, next) => {
         res.status(500).json({ message: 'Server error' });
     }
 }
+
+export const requestPasswordReset: RequestHandler = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ where: { email } });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const token = crypto.randomBytes(20).toString('hex');
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour from now
+        await user.save();
+
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+
+        const msg = {
+            to: email,
+            from: process.env.SENDGRID_FROM_EMAIL!,
+            subject: 'Password Reset Request',
+            text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`,
+            html: `<p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p><p>Please click on the following link, or paste this into your browser to complete the process:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you did not request this, please ignore this email and your password will remain unchanged.</p>`,
+        };
+
+        await sgMail.send(msg);
+
+        res.status(200).json({ message: 'Reset password instructions sent' });
+    } catch (error) {
+        console.error('Error in reset password request:', error);
+        res.status(500).json({ message: 'Error in reset password request process' });
+    }
+};
+
+export const resetPassword: RequestHandler = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    try {
+        const user = await User.findOne({
+            where: {
+                resetPasswordToken: token,
+                resetPasswordExpires: { [Op.gt]: new Date() }
+            }
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Password reset token is invalid or has expired' });
+        }
+
+        const hashedPassword = await hashPassword(password);
+        user.password = hashedPassword;
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = null;
+        await user.save();
+
+        res.status(200).json({ message: 'Password has been reset' });
+    } catch (error) {
+        console.error('Error in reset password:', error);
+        res.status(500).json({ message: 'Error in reset password process' });
+    }
+};
