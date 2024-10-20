@@ -1,14 +1,16 @@
 import { Request, RequestHandler, Response } from "express";
 import {User} from "../models/user";
 // import {Cart} from "../models/cart";
-import {Payment} from "../models/payment";
-import jwt from 'jsonwebtoken';
+// import {Payment} from "../models/payment";
+// import jwt from 'jsonwebtoken';
 import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../services/auth";
 import { OAuth2Client } from 'google-auth-library';
 import { Snowflake } from "nodejs-snowflake";
 import sgMail from '@sendgrid/mail';
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import crypto from 'crypto';
+import { db } from './../models/index';
+import { Payment } from "../models/payment"; 
 
 const idGenerator = new Snowflake({
     custom_epoch: 1725148800000,
@@ -51,41 +53,92 @@ function sanitizeUser(user: User) {
     };
   }
 
+// export const createUser: RequestHandler = async (req, res, next) => {
+//     let newUser: User = req.body;
+
+//     // console.log(newUser)
+
+//     if (newUser.email && newUser.password) {
+//         let hashedPassword = await hashPassword(newUser.password);
+//         newUser.password = hashedPassword;
+//         let created = await User.create(newUser);
+
+//         // call createPayment
+//         let newPayment: Payment = req.body;
+//         newPayment.userId = created.userId;
+//         // newPayment.userId = user.userId;
+//         // if (newPayment.userId && newPayment.tier) {
+//             let payment = await Payment.create(newPayment);
+//             // res.status(201).json(created);
+//         // }
+//         // else {
+//         //     res.status(400).send();
+//         // }
+
+//         res.status(200).json({
+//             email: created.email,
+//             // password: created.password,
+//             ...payment.dataValues
+//         });
+//         // // Create a cart for the new user
+//         // // interface CartCreationAttributes extends Omit<Cart, 'cartId'> {}
+//         // let newCart = await Cart.create({
+//         //     userId: created.userId // Use the ID from the created user
+//         // }as any);
+//     }
+//     else {
+//         res.status(400).send('Email and password required');
+//     }
+// }
+
 export const createUser: RequestHandler = async (req, res, next) => {
-    let newUser: User = req.body;
+    const t: Transaction = await db.transaction();
 
-    // console.log(newUser)
+    try {
+        let newUser: User = req.body;
+        let paymentInfo = req.body;
 
-    if (newUser.email && newUser.password) {
-        let hashedPassword = await hashPassword(newUser.password);
-        newUser.password = hashedPassword;
-        let created = await User.create(newUser);
+        if (newUser.email && newUser.password) {
+            let hashedPassword = await hashPassword(newUser.password);
+            newUser.password = hashedPassword;
+            
+            let createdUser = await User.create(newUser, { transaction: t });
 
-        // call createPayment
-        let newPayment: Payment = req.body;
-        newPayment.userId = created.userId;
-        // newPayment.userId = user.userId;
-        // if (newPayment.userId && newPayment.tier) {
-            let payment = await Payment.create(newPayment);
-            // res.status(201).json(created);
-        // }
-        // else {
-        //     res.status(400).send();
-        // }
+            let newPayment = {
+                userId: createdUser.userId,
+                tier: paymentInfo.tier || 'Just Looking',
+                price: paymentInfo.price || 0,
+                purchaseType: paymentInfo.paymentType || 'subscription',
+                paymentFrequency: paymentInfo.paymentFrequency || 'monthly',
+                billingAddress: paymentInfo.billingAddress,
+                billingZipcode: paymentInfo.billingZipcode,
+                shippingAddress: paymentInfo.shippingAddress,
+                shippingZipcode: paymentInfo.shippingZipcode
+            };
 
-        res.status(200).json({
-            email: created.email,
-            // password: created.password,
-            ...payment.dataValues
-        });
-        // // Create a cart for the new user
-        // // interface CartCreationAttributes extends Omit<Cart, 'cartId'> {}
-        // let newCart = await Cart.create({
-        //     userId: created.userId // Use the ID from the created user
-        // }as any);
-    }
-    else {
-        res.status(400).send('Email and password required');
+            let createdPayment = await Payment.create(newPayment, { transaction: t });
+
+            await t.commit();
+
+            res.status(201).json({
+                user: {
+                    userId: createdUser.userId,
+                    email: createdUser.email,
+                    name: createdUser.name,
+                    tier: createdUser.tier,
+                    paymentFrequency: createdUser.paymentFrequency,
+                    price: createdUser.price,
+                },
+                payment: createdPayment
+            });
+        } else {
+            await t.rollback();
+            res.status(400).send('Email and password required');
+        }
+    } catch (error) {
+        await t.rollback();
+        console.error('Error creating user and payment:', error);
+        res.status(500).json({ message: 'Error creating user and payment' });
     }
 }
 
