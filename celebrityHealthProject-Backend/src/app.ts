@@ -15,14 +15,16 @@ import { google } from 'googleapis';
 import sgMail from '@sendgrid/mail';
 import crypto from 'crypto';
 import { Op } from 'sequelize';
-
 import userRoutes from './routes/userRoutes';
 import productRoutes from './routes/productRoutes';
 import cartRoutes from './routes/cartRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import imageRoutes from './routes/image.routes';
+import youtubeRoutes from './routes/youtube.routes';
 import path from 'path';
 import fs from 'fs';
 import { profile } from 'console';
+import './config/firebase.config';
 
 dotenv.config();
 
@@ -75,6 +77,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/images', imageRoutes);
+app.use('/api/youtube', youtubeRoutes);
 
 
 // Initialize Snowflake (you might want to do this once at the top of your file)

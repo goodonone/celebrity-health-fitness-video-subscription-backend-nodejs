@@ -622,6 +622,28 @@ export const requestPasswordReset: RequestHandler = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+
+      // Check if the user is a Google OAuth user
+    if (user.isGoogleAuth) {
+        // Send a different email for Google OAuth users
+        const msg = {
+          to: email,
+          from: process.env.SENDGRID_FROM_EMAIL!,
+          templateId: 'd-8610d03ffbc84e4e942f3cdc5521a8ed', 
+          dynamicTemplateData: {
+            name: user.name,
+            loginUrl: `${process.env.FRONTEND_URL}/login` 
+          }
+        };
+  
+        await sgMail.send(msg);
+  
+        return res.status(200).json({ 
+          message: 'Instructions sent for Google account login',
+          isOAuthUser: true
+        });
+    }   
+
         const token = crypto.randomBytes(20).toString('hex');
         user.resetPasswordToken = token;
         user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour from now
