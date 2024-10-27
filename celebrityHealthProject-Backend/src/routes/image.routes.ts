@@ -50,11 +50,26 @@ const router = Router();
 // Middleware to verify token and attach user to request
 const authMiddleware = async (req: RequestWithUser, res: Response, next: NextFunction) => {
     try {
-        const user = await verifyToken(req);
-        if (!user) {
+        const verifiedUser = await verifyToken(req);
+        if (!verifiedUser) {
             return res.status(401).json({ message: 'Not authorized' });
         }
-        req.user = user;
+
+        // Transform the Sequelize User instance into UserData
+        req.user = {
+            userId: verifiedUser.userId,
+            email: verifiedUser.email,
+            isGoogleAuth: verifiedUser.isGoogleAuth,
+            name: verifiedUser.name,
+            tier: verifiedUser.tier || 'Just Looking',
+            weight: verifiedUser.weight || undefined,
+            height: verifiedUser.height || undefined,
+            gender: verifiedUser.gender || undefined,
+            goals: verifiedUser.goals || undefined,
+            dateOfBirth: verifiedUser.dateOfBirth || undefined,
+            imgUrl: verifiedUser.imgUrl || undefined
+        };
+
         next();
     } catch (error) {
         console.error('Auth middleware error:', error);

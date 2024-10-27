@@ -6,7 +6,7 @@ import util from 'util';
 import morgan from 'morgan';
 import cors from 'cors';
 import { AssociateAllModels } from './models/associations';
-import { OAuth2Client } from 'google-auth-library';
+import { auth, OAuth2Client } from 'google-auth-library';
 import { User } from './models/user';
 import { Payment } from './models/payment';
 import { signUserToken } from './services/auth';
@@ -25,6 +25,7 @@ import path from 'path';
 import fs from 'fs';
 import { profile } from 'console';
 import './config/firebase.config';
+import authRoutes from './routes/auth.routes';
 
 dotenv.config();
 
@@ -79,6 +80,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/youtube', youtubeRoutes);
+app.use('/api/users', authRoutes);
 
 
 // Initialize Snowflake (you might want to do this once at the top of your file)

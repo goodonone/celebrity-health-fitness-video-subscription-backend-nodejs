@@ -1,18 +1,26 @@
-import { User } from '../models/user';
+import * as express from 'express';
 
-declare global {
-  namespace Express {
+declare namespace Express {
     interface Request {
-      user?: {
-        userId: string;
-        // other user properties you need
-      };
+        user?: {
+            userId: string;
+            email: string;
+            isGoogleAuth: boolean;
+            name: string;
+            tier: string;
+            firebaseUser?: {
+                uid: string;
+                email?: string | null;
+                // Add other Firebase user properties you need
+            };
+            // Other user properties
+            weight?: string;
+            height?: string;
+            gender?: string;
+            goals?: string;
+            dateOfBirth?: string;
+            imgUrl?: string;
+            [key: string]: any;
+        };
     }
-  }
 }
-
-const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  // Your authentication logic
-  req.user = { userId: 'someId' };
-  next();
-};
