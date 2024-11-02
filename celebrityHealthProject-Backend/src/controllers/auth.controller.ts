@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { RequestWithUser } from '../types/custom';
+// import { RequestWithUser } from '../types/custom';
 import { auth } from '../config/firebase.config';
 import { FirebaseAuthError } from 'firebase-admin/auth';
 
@@ -86,7 +86,7 @@ function isFirebaseError(error: unknown): error is FirebaseAuthError {
 // }
 
 
-export async function getFirebaseToken(req: RequestWithUser, res: Response) {
+export async function getFirebaseToken(req: Request, res: Response) {
     try {
       console.log('1. Incoming Request User:', {
         email: req.user?.email,

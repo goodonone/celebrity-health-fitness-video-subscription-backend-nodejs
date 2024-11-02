@@ -64,16 +64,20 @@
 import { Request, Response } from 'express';
 import { storage } from '../config/firebase.config';
 import { getDownloadURL } from 'firebase-admin/storage';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import multer from 'multer';
+// import { RequestWithUser } from '../types/custom';
 
 // At the top of storage.controller.ts
-interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-    [key: string]: any;
-  }
-}
+// interface AuthenticatedRequest extends Request {
+//   user?: {
+//     uid: string;
+//     [key: string]: any;
+//   }
+// }
 
-export async function getImage(req: AuthenticatedRequest, res: Response) {
+export async function getImage(req: Request, res: Response) {
   console.log('Get image request:', {
     params: req.params,
     url: req.url,
@@ -203,7 +207,7 @@ export async function moveToPermStorage(userId: string, fileName: string): Promi
 }
 
   // storage.controller.ts
-export async function moveImage(req: AuthenticatedRequest, res: Response) {
+export async function moveImage(req: Request, res: Response) {
   try {
     const { userId } = req.params;
     const { fileName } = req.body;
@@ -232,3 +236,126 @@ export async function moveImage(req: AuthenticatedRequest, res: Response) {
     res.status(500).json({ error: 'Failed to move image' });
   }
 }
+
+// Function to upload file to Firebase Storage
+// export async function uploadFileToFirebase(
+//   fileBuffer: Buffer,
+//   filePath: string,
+//   contentType: string
+// ): Promise<string> {
+//   try {
+//     const bucket = storage.bucket();
+//     const file = bucket.file(filePath);
+
+//     await file.save(fileBuffer, {
+//       metadata: { contentType },
+//     });
+
+//     // Optionally make the file publicly accessible
+//     // await file.makePublic();
+
+//     // Generate a signed URL for the uploaded file
+//     const [downloadURL] = await file.getSignedUrl({
+//       action: 'read',
+//       expires: '03-17-2025', // Adjust as needed
+//     });
+
+//     return downloadURL;
+//   } catch (error) {
+//     console.error('Error uploading file to Firebase:', error);
+//     throw error;
+//   }
+// }
+
+// // Initialize multer middleware
+// const upload = multer();
+
+
+// export async function uploadImage(req: Request, res: Response) {
+//   try {
+//     const userId = req.params.userId;
+//     const file = req.file;
+
+//     // Verify user has permission
+//     if (req.user?.userId !== userId) {
+//       return res.status(403).json({ error: 'Unauthorized' });
+//     }
+
+//     if (!file) {
+//       return res.status(400).json({ success: false, message: 'No file uploaded' });
+//     }
+
+//     // Construct the file path
+//     const fileExtension = path.extname(file.originalname);
+//     const uniqueFileName = `${uuidv4()}${fileExtension}`;
+//     const filePath = `staging/profileImages/${userId}/${uniqueFileName}`;
+
+//     // Upload the file to Firebase Storage
+//     const downloadURL = await uploadFileToFirebase(file.buffer, filePath, file.mimetype);
+
+//     res.json({ success: true, downloadURL, fileName: uniqueFileName });
+//   } catch (error) {
+//     console.error('Error uploading file:', error);
+//     res.status(500).json({ success: false, message: 'Error uploading file' });
+//   }
+// }
+
+export async function uploadFileToFirebase(
+  fileBuffer: Buffer,
+  filePath: string,
+  contentType: string
+): Promise<string> {
+  try {
+    const bucket = storage.bucket();
+    const file = bucket.file(filePath);
+
+    await file.save(fileBuffer, {
+      metadata: { contentType },
+    });
+
+    // Optionally make the file publicly accessible
+    // await file.makePublic();
+
+    // Generate a signed URL for the uploaded file
+    const [downloadURL] = await file.getSignedUrl({
+      action: 'read',
+      expires: '03-17-2025', // Adjust as needed
+    });
+
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading file to Firebase:', error);
+    throw error;
+  }
+}
+
+// Controller method to handle file upload
+export async function uploadImage(req: Request, res: Response) {
+  try {
+    const userId = req.params.userId;
+    const file = req.file;
+
+    // Verify user has permission
+    if (req.user?.userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    // Construct the file path
+    const fileExtension = path.extname(file.originalname);
+    const uniqueFileName = `${uuidv4()}${fileExtension}`;
+    const filePath = `staging/profileImages/${userId}/${uniqueFileName}`;
+
+    // Upload the file to Firebase Storage
+    const downloadURL = await uploadFileToFirebase(file.buffer, filePath, file.mimetype);
+
+    res.json({ success: true, downloadURL, fileName: uniqueFileName });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ success: false, message: 'Error uploading file' });
+  }
+}
+

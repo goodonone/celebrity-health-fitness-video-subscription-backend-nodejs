@@ -131,7 +131,11 @@
 import { Request, Response } from 'express';
 import { generateUploadUrl, deleteImageFromFirebase } from '../utils/firebase.utils';
 import { User } from '../models/user';
-import { RequestWithUser } from '../types/custom';
+// import { RequestWithUser } from '../types/custom';
+import path from 'path';
+import { uploadFileToFirebase } from './storage.controller';
+import { v4 as uuidv4 } from 'uuid';
+import { storage } from '../config/firebase.config'; // Adjust the path as needed
 
 export class ImageController {
   // Generate signed URL for upload
@@ -168,7 +172,7 @@ export class ImageController {
   //     res.status(500).json({ error: 'Failed to generate upload URL' });
   //   }
   // }
-  static async getUploadUrl(req: RequestWithUser, res: Response) {
+  static async getUploadUrl(req: Request, res: Response) {
     try {
         const userId = req.params.userId;
         const { contentType, folder } = req.body;
@@ -237,6 +241,34 @@ export class ImageController {
     }
   }
 
+  static async getDownloadUrl(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const { fileName } = req.body;
+  
+      const filePath = `profileImages/${userId}/${fileName}`;
+      const bucket = storage.bucket();
+      const file = bucket.file(filePath);
+  
+      // Generate signed URL
+      const [downloadUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 days
+      });
+  
+      res.json({
+        success: true,
+        downloadUrl,
+      });
+    } catch (error) {
+      console.error('Error generating download URL:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate download URL',
+      });
+    }
+  }
+
   // Delete profile picture
   static async deleteProfilePicture(req: Request, res: Response) {
     try {
@@ -269,3 +301,36 @@ export class ImageController {
     }
   }
 }
+
+
+// Controller method to handle file upload
+export async function uploadImage(req: Request, res: Response) {
+  try {
+    const userId = req.params.userId;
+    const file = req.file;
+
+    // Verify user has permission
+    if (req.user?.userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    // Construct the file path
+    const fileExtension = path.extname(file.originalname);
+    const uniqueFileName = `${uuidv4()}${fileExtension}`;
+    const filePath = `staging/profileImages/${userId}/${uniqueFileName}`;
+
+    // Upload the file to Firebase Storage
+    const downloadURL = await uploadFileToFirebase(file.buffer, filePath, file.mimetype);
+
+    res.json({ success: true, downloadURL, fileName: uniqueFileName });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ success: false, message: 'Error uploading file' });
+  }
+}
+
+
