@@ -105,19 +105,11 @@ async function handleGoogleSignup(data: any, res: Response, t: any) {
 // import { FirebaseError } from 'firebase-admin';
 // import { FirebaseError } from 'firebase-admin/lib/utils/error';
 
-dotenv.config();
-
-const execPromise = util.promisify(exec);
-
-const app = express();
-
-// Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
 // Serve static files from the 'public' directory
-const publicPath = path.join(__dirname, '..', 'public');
-console.log('Static files directory:', publicPath);
-app.use(express.static(publicPath));
+// const publicPath = path.join(__dirname, '..', 'public');
+// console.log('Static files directory:', publicPath);
+// app.use(express.static(publicPath));
 
 
 // app.get('/debug-list-images', (req: Request, res: Response) => {
@@ -134,17 +126,272 @@ app.use(express.static(publicPath));
 //   });
 // });
 
-// CORS configuration
-app.use(cors({
-    origin: ['http://localhost:4200', 'https://hughjackedman.com'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+
+dotenv.config();
+
+const execPromise = util.promisify(exec);
+
+const app = express();
+
+// Initialize SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
+
+// app.use(cors({
+//   origin: ['http://localhost:4200', 'https://hughjackedman.com'],
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true
+// }));
+
+
+// // 1. Essential middleware (should be at the top)
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use(morgan('dev'));
+
+// 2. CORS configuration
+const allowedOrigins = [
+  'http://localhost:4200',
+  'https://hughjackedman.com'
+];
+
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma',
+    'X-Auth-Token'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  credentials: true,
+  optionsSuccessStatus: 204,
+  maxAge: 3600
+};
+
+// Apply CORS
+app.use(cors(corsOptions));
+
+// 3. Security and Headers Middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Special handling for staging routes
+  if (req.path.includes('/staging/')) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+
+  next();
+});
+
+// 4. Static files (after security headers)
+const publicPath = path.join(__dirname, '..', 'public');
+app.use(express.static(publicPath));
+
+// 5. Logging Middleware (consolidated)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log('Incoming request:', {
+    method: req.method,
+    url: req.url,
+    params: req.params,
+    query: req.query,
+    headers: {
+      origin: req.headers.origin,
+      authorization: req.headers.authorization ? '[PRESENT]' : '[MISSING]'
+    }
+  });
+  next();
+});
+
+// 6. Error Handlers
+const corsErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      error: 'CORS origin not allowed',
+      message: 'Origin not allowed by CORS policy'
+    });
+  }
+  next(err);
+};
+
+const authErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err.message === 'No Bearer token found in authorization header') {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+      message: 'No valid authentication token provided'
+    });
+  }
+  next(err);
+};
+
+app.use(corsErrorHandler);
+app.use(authErrorHandler);
+
+// 7. Routes (after all middleware)
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/images', imageRoutes);
+app.use('/api/youtube', youtubeRoutes);
+app.use('/api/users', authRoutes);
+app.use('/api', storageRoutes);
+
+app.get('/api/auth/google', (req: Request, res: Response) => {
+  console.log('Google OAuth initiation route hit');
+  const state = req.query.state as string;
+  if (state !== 'signup' && state !== 'login') {
+    return res.status(400).send('Invalid state parameter');
+  }
+  const authUrl = client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['profile', 'email'],
+    redirect_uri: `${process.env.SERVER_URL}/api/auth/google/callback`,
+    state: state,
+    prompt: 'select_account'
+  });
+  res.redirect(authUrl);
+});
+
+// Google OAuth callback route
+app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
+  console.log('Google OAuth callback route hit');
+  const { code, state } = req.query;
+  
+  if (!code || (state !== 'signup' && state !== 'login')) {
+    console.error('Missing authorization code or invalid state');
+    return sendResponse(res, {
+      type: 'GOOGLE_AUTH_ERROR',
+      error: 'Missing authorization code or invalid state'
+    });
+  }
+
+  try {
+    // Exchange authorization code for access token
+    const { tokens } = await client.getToken(code as string);
+    client.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({ version: 'v2', auth: client });
+    const { data } = await oauth2.userinfo.get();
+
+    console.log('Received user data:', data);
+
+    // Start a transaction to handle database actions atomically
+    await db.transaction(async (t) => {
+      const existingUser = await User.findOne({
+        where: { email: data.email || '' },
+        transaction: t
+      });
+
+      if (state === 'signup') {
+        // Use handleGoogleSignup function if the user is signing up
+        if (existingUser) {
+          return sendResponse(res, {
+            type: 'GOOGLE_AUTH_ERROR',
+            error: 'User already exists. Please log in instead.'
+          });
+        }
+
+        // Call handleGoogleSignup for new user signup
+        await handleGoogleSignup(data, res, t);
+
+      } else { // state === 'login'
+        if (!existingUser) {
+          return sendResponse(res, {
+            type: 'GOOGLE_AUTH_ERROR',
+            error: 'User does not exist. Please sign up first.'
+          });
+        }
+
+        // Existing user login logic
+        try {
+          // Ensure Firebase user exists with correct ID
+          try {
+            await firebaseAuth.getUser(existingUser.userId);
+          } catch (error) {
+            if (isFirebaseError(error) && error.code === 'auth/user-not-found') {
+              // Create missing Firebase user
+              await firebaseAuth.createUser({
+                uid: existingUser.userId,
+                email: existingUser.email,
+                emailVerified: true,
+                displayName: existingUser.name,
+                photoURL: existingUser.imgUrl
+              });
+              console.log('Created missing Firebase user for existing user:', existingUser.userId);
+            } else {
+              throw error;
+            }
+          }
+
+          // Update custom claims
+          await firebaseAuth.setCustomUserClaims(existingUser.userId, {
+            userId: existingUser.userId,
+            email: existingUser.email,
+            tier: existingUser.tier
+          });
+
+          const token = await signUserToken(existingUser);
+
+          return sendResponse(res, {
+            type: 'GOOGLE_AUTH_SUCCESS',
+            payload: {
+              token,
+              user: {
+                userId: existingUser.userId,
+                email: existingUser.email,
+                name: existingUser.name,
+                tier: existingUser.tier,
+                billing: existingUser.paymentFrequency,
+                imgUrl: existingUser.imgUrl,
+                price: existingUser.price,
+                weight: existingUser.weight,
+                height: existingUser.height,
+                gender: existingUser.gender,
+                dateOfBirth: existingUser.dateOfBirth,
+                goals: existingUser.goals,
+                profilePictureSettings: existingUser.profilePictureSettings,
+                isGoogleAuth: existingUser.isGoogleAuth
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Error during login:', error);
+          throw error;
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Detailed error during Google authentication:', error);
+    return sendResponse(res, {
+      type: 'GOOGLE_AUTH_ERROR',
+      error: 'Authentication failed'
+    });
+  }
+});
+
 
 app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`${req.method} ${req.url}`, req.body);
@@ -161,17 +408,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   });
   next();
 });
-
-// Routes
-app.use('/api/users', userRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/images', imageRoutes);
-app.use('/api/youtube', youtubeRoutes);
-app.use('/api/users', authRoutes);
-app.use('/api', storageRoutes);
-
 
 // Error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -205,21 +441,7 @@ const client = new OAuth2Client({
     redirectUri: `${process.env.SERVER_URL}/api/auth/google/callback`
   });
 
-app.get('/api/auth/google', (req: Request, res: Response) => {
-  console.log('Google OAuth initiation route hit');
-  const state = req.query.state as string;
-  if (state !== 'signup' && state !== 'login') {
-    return res.status(400).send('Invalid state parameter');
-  }
-  const authUrl = client.generateAuthUrl({
-    access_type: 'offline',
-    scope: ['profile', 'email'],
-    redirect_uri: `${process.env.SERVER_URL}/api/auth/google/callback`,
-    state: state,
-    prompt: 'select_account'
-  });
-  res.redirect(authUrl);
-});
+
 
 // app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
 //   console.log('Google OAuth callback route hit');
@@ -487,123 +709,6 @@ app.get('/api/auth/google', (req: Request, res: Response) => {
 //     });
 //   }
 // });
-
-// Google OAuth callback route
-app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
-  console.log('Google OAuth callback route hit');
-  const { code, state } = req.query;
-  
-  if (!code || (state !== 'signup' && state !== 'login')) {
-    console.error('Missing authorization code or invalid state');
-    return sendResponse(res, {
-      type: 'GOOGLE_AUTH_ERROR',
-      error: 'Missing authorization code or invalid state'
-    });
-  }
-
-  try {
-    // Exchange authorization code for access token
-    const { tokens } = await client.getToken(code as string);
-    client.setCredentials(tokens);
-
-    const oauth2 = google.oauth2({ version: 'v2', auth: client });
-    const { data } = await oauth2.userinfo.get();
-
-    console.log('Received user data:', data);
-
-    // Start a transaction to handle database actions atomically
-    await db.transaction(async (t) => {
-      const existingUser = await User.findOne({
-        where: { email: data.email || '' },
-        transaction: t
-      });
-
-      if (state === 'signup') {
-        // Use handleGoogleSignup function if the user is signing up
-        if (existingUser) {
-          return sendResponse(res, {
-            type: 'GOOGLE_AUTH_ERROR',
-            error: 'User already exists. Please log in instead.'
-          });
-        }
-
-        // Call handleGoogleSignup for new user signup
-        await handleGoogleSignup(data, res, t);
-
-      } else { // state === 'login'
-        if (!existingUser) {
-          return sendResponse(res, {
-            type: 'GOOGLE_AUTH_ERROR',
-            error: 'User does not exist. Please sign up first.'
-          });
-        }
-
-        // Existing user login logic
-        try {
-          // Ensure Firebase user exists with correct ID
-          try {
-            await firebaseAuth.getUser(existingUser.userId);
-          } catch (error) {
-            if (isFirebaseError(error) && error.code === 'auth/user-not-found') {
-              // Create missing Firebase user
-              await firebaseAuth.createUser({
-                uid: existingUser.userId,
-                email: existingUser.email,
-                emailVerified: true,
-                displayName: existingUser.name,
-                photoURL: existingUser.imgUrl
-              });
-              console.log('Created missing Firebase user for existing user:', existingUser.userId);
-            } else {
-              throw error;
-            }
-          }
-
-          // Update custom claims
-          await firebaseAuth.setCustomUserClaims(existingUser.userId, {
-            userId: existingUser.userId,
-            email: existingUser.email,
-            tier: existingUser.tier
-          });
-
-          const token = await signUserToken(existingUser);
-
-          return sendResponse(res, {
-            type: 'GOOGLE_AUTH_SUCCESS',
-            payload: {
-              token,
-              user: {
-                userId: existingUser.userId,
-                email: existingUser.email,
-                name: existingUser.name,
-                tier: existingUser.tier,
-                billing: existingUser.paymentFrequency,
-                imgUrl: existingUser.imgUrl,
-                price: existingUser.price,
-                weight: existingUser.weight,
-                height: existingUser.height,
-                gender: existingUser.gender,
-                dateOfBirth: existingUser.dateOfBirth,
-                goals: existingUser.goals,
-                profilePictureSettings: existingUser.profilePictureSettings,
-                isGoogleAuth: existingUser.isGoogleAuth
-              }
-            }
-          });
-        } catch (error) {
-          console.error('Error during login:', error);
-          throw error;
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Detailed error during Google authentication:', error);
-    return sendResponse(res, {
-      type: 'GOOGLE_AUTH_ERROR',
-      error: 'Authentication failed'
-    });
-  }
-});
 
 
 function sendResponse(res: Response, data: any) {

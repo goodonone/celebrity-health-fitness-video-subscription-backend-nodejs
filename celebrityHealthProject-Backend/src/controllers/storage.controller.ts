@@ -206,36 +206,36 @@ export async function moveToPermStorage(userId: string, fileName: string): Promi
   }
 }
 
-  // storage.controller.ts
-export async function moveImage(req: Request, res: Response) {
-  try {
-    const { userId } = req.params;
-    const { fileName } = req.body;
 
-    // Verify user has permission
-    if (req.user?.userId !== userId) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
+// export async function moveImage(req: Request, res: Response) {
+//   try {
+//     const { userId } = req.params;
+//     const { fileName } = req.body;
 
-    const bucket = storage.bucket();
-    const stagingPath = `staging/profileImages/${userId}/${fileName}`;
-    const permanentPath = `profileImages/${userId}/${fileName}`;
+//     // Verify user has permission
+//     if (req.user?.userId !== userId) {
+//       return res.status(403).json({ error: 'Unauthorized' });
+//     }
+
+//     const bucket = storage.bucket();
+//     const stagingPath = `staging/profileImages/${userId}/${fileName}`;
+//     const permanentPath = `profileImages/${userId}/${fileName}`;
     
-    // Move file from staging to permanent
-    await bucket.file(stagingPath).move(bucket.file(permanentPath));
+//     // Move file from staging to permanent
+//     await bucket.file(stagingPath).move(bucket.file(permanentPath));
 
-    // Generate signed URL for the permanent file
-    const [url] = await bucket.file(permanentPath).getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
-    });
+//     // Generate signed URL for the permanent file
+//     const [url] = await bucket.file(permanentPath).getSignedUrl({
+//       action: 'read',
+//       expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+//     });
 
-    res.json({ url });
-  } catch (error) {
-    console.error('Error moving image:', error);
-    res.status(500).json({ error: 'Failed to move image' });
-  }
-}
+//     res.json({ url });
+//   } catch (error) {
+//     console.error('Error moving image:', error);
+//     res.status(500).json({ error: 'Failed to move image' });
+//   }
+// }
 
 // Function to upload file to Firebase Storage
 // export async function uploadFileToFirebase(
@@ -359,3 +359,188 @@ export async function uploadImage(req: Request, res: Response) {
   }
 }
 
+// export async function moveImage(req: Request, res: Response) {
+//   try {
+//     // Verify auth token
+//     if (!req.headers.authorization) {
+//       return res.status(401).json({ error: 'No authorization token provided' });
+//     }
+
+//     const { userId } = req.params;
+//     const { fileName } = req.body;
+
+//     const bucket = storage.bucket();
+//     const stagingPath = `staging/profileImages/${userId}/${fileName}`;
+//     const permanentPath = `profileImages/${userId}/${fileName}`;
+
+//     // Move file
+//     await bucket.file(stagingPath).move(bucket.file(permanentPath));
+
+//     // Generate signed URL
+//     const [url] = await bucket.file(permanentPath).getSignedUrl({
+//       action: 'read',
+//       expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+//     });
+
+//     res.json({ 
+//       success: true,
+//       url 
+//     });
+//   } catch (error) {
+//     console.error('Error moving image:', error);
+//     res.status(500).json({ error: 'Failed to move image' });
+//   }
+// }
+
+// export async function moveImage(req: Request, res: Response) {
+//   try {
+//     // Verify auth token
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//       return res.status(401).json({ 
+//         success: false,
+//         error: 'No authorization token provided' 
+//       });
+//     }
+
+//     const { userId } = req.params;
+//     const { fileName } = req.body;
+
+//     if (!fileName) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Filename is required'
+//       });
+//     }
+
+//     const bucket = storage.bucket();
+//     const stagingPath = `staging/profileImages/${userId}/${fileName}`;
+//     const permanentPath = `profileImages/${userId}/${fileName}`;
+
+//     // Check if staging file exists
+//     const [stagingExists] = await bucket.file(stagingPath).exists();
+//     if (!stagingExists) {
+//       return res.status(404).json({
+//         success: false,
+//         error: 'Staged file not found'
+//       });
+//     }
+
+//     // Move file
+//     await bucket.file(stagingPath).move(bucket.file(permanentPath));
+
+//     // Generate signed URL
+//     const [url] = await bucket.file(permanentPath).getSignedUrl({
+//       action: 'read',
+//       expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 days
+//     });
+
+//     res.json({ 
+//       success: true,
+//       url 
+//     });
+//   } catch (error) {
+//     console.error('Error moving image:', error);
+//     res.status(500).json({ 
+//       success: false,
+//       error: 'Failed to move image' 
+//     });
+//   }
+// }
+
+
+interface MoveImageResponse {
+  success: boolean;
+  url?: string;
+  error?: string;
+}
+
+export async function moveImage(req: Request, res: Response<MoveImageResponse>) {
+  console.log('Move image request received:', {
+    userId: req.params.userId,
+    fileName: req.body.fileName
+  });
+
+  try {
+    // Extract and validate request data
+    const { userId } = req.params;
+    const { fileName } = req.body;
+
+    // Validate input
+    if (!fileName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Filename is required'
+      });
+    }
+
+    // Initialize Firebase storage
+    const bucket = storage.bucket();
+    const paths = {
+      staging: `staging/profileImages/${userId}/${fileName}`,
+      permanent: `profileImages/${userId}/${fileName}`
+    };
+
+    console.log('Checking file existence:', paths.staging);
+
+    // Check if staging file exists
+    const [stagingExists] = await bucket.file(paths.staging).exists();
+    if (!stagingExists) {
+      console.log('Staged file not found:', paths.staging);
+      return res.status(404).json({
+        success: false,
+        error: 'Staged file not found'
+      });
+    }
+
+    // Move file from staging to permanent storage
+    console.log('Moving file from staging to permanent storage');
+    try {
+      await bucket.file(paths.staging).move(bucket.file(paths.permanent));
+      console.log('File moved successfully');
+    } catch (moveError) {
+      console.error('Error moving file:', moveError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to move file to permanent storage'
+      });
+    }
+
+    // Generate signed URL for the permanent file
+    console.log('Generating signed URL for permanent file');
+    try {
+      const [url] = await bucket.file(paths.permanent).getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 days
+      });
+
+      console.log('Move operation completed successfully');
+      return res.json({
+        success: true,
+        url
+      });
+    } catch (urlError) {
+      console.error('Error generating signed URL:', urlError);
+      
+      // Try to move file back to staging if URL generation fails
+      try {
+        await bucket.file(paths.permanent).move(bucket.file(paths.staging));
+        console.log('File moved back to staging after URL generation failure');
+      } catch (rollbackError) {
+        console.error('Failed to rollback file move:', rollbackError);
+      }
+
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to generate URL for moved file'
+      });
+    }
+
+  } catch (error) {
+    console.error('Unexpected error in moveImage:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error while processing image move'
+    });
+  }
+}

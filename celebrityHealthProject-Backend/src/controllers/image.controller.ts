@@ -300,6 +300,53 @@ export class ImageController {
       res.status(500).json({ error: 'Failed to delete profile picture' });
     }
   }
+
+  // image.controller.ts
+static async getSignedImageUrl(req: Request, res: Response) {
+  try {
+    const { userId, fileName } = req.params;
+    const filePath = `staging/profileImages/${userId}/${fileName}`;
+    const bucket = storage.bucket();
+    const file = bucket.file(filePath);
+    const [signedUrl] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    });
+    res.json({ success: true, url: signedUrl });
+  } catch (error) {
+    console.error('Error generating signed URL:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate signed URL' });
+  }
+}
+
+  // static async getStagingDownloadUrl(req: Request, res: Response) {
+  //   try {
+  //     const { userId } = req.params;
+  //     const { fileName } = req.body;
+
+  //     const filePath = `staging/profileImages/${userId}/${fileName}`;
+  //     const bucket = storage.bucket();
+  //     const file = bucket.file(filePath);
+
+  //     // Generate signed URL
+  //     const [downloadUrl] = await file.getSignedUrl({
+  //       action: 'read',
+  //       expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+  //     });
+
+  //     res.json({
+  //       success: true,
+  //       downloadUrl,
+  //     });
+  //   } catch (error) {
+  //     console.error('Error generating staging download URL:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to generate staging download URL',
+  //     });
+  //   }
+  // }
+
 }
 
 

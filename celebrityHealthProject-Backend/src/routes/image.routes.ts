@@ -574,4 +574,12 @@ router.post(
     ImageController.getDownloadUrl
   );
 
+
+// router.post(
+// '/staging-download-url/:userId',
+// authMiddleware,
+// userMatchMiddleware,
+// ImageController.getStagingDownloadUrl
+// );  
+
 export default router;
