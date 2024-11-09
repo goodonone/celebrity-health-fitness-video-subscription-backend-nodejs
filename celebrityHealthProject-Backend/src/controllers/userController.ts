@@ -1,14 +1,16 @@
 import { Request, RequestHandler, Response } from "express";
 import {User} from "../models/user";
 // import {Cart} from "../models/cart";
-import {Payment} from "../models/payment";
-import jwt from 'jsonwebtoken';
+// import {Payment} from "../models/payment";
+// import jwt from 'jsonwebtoken';
 import { hashPassword, comparePasswords, signUserToken, verifyToken } from "../services/auth";
 import { OAuth2Client } from 'google-auth-library';
 import { Snowflake } from "nodejs-snowflake";
 import sgMail from '@sendgrid/mail';
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import crypto from 'crypto';
+import { db } from './../models/index';
+import { Payment } from "../models/payment"; 
 
 const idGenerator = new Snowflake({
     custom_epoch: 1725148800000,
@@ -51,143 +53,57 @@ function sanitizeUser(user: User) {
     };
   }
 
+
 export const createUser: RequestHandler = async (req, res, next) => {
-    let newUser: User = req.body;
+    const t: Transaction = await db.transaction();
 
-    // console.log(newUser)
+    try {
+        let newUser: User = req.body;
+        let paymentInfo = req.body;
 
-    if (newUser.email && newUser.password) {
-        let hashedPassword = await hashPassword(newUser.password);
-        newUser.password = hashedPassword;
-        let created = await User.create(newUser);
+        if (newUser.email && newUser.password) {
+            let hashedPassword = await hashPassword(newUser.password);
+            newUser.password = hashedPassword;
+            
+            let createdUser = await User.create(newUser, { transaction: t });
 
-        // call createPayment
-        let newPayment: Payment = req.body;
-        newPayment.userId = created.userId;
-        // newPayment.userId = user.userId;
-        // if (newPayment.userId && newPayment.tier) {
-            let payment = await Payment.create(newPayment);
-            // res.status(201).json(created);
-        // }
-        // else {
-        //     res.status(400).send();
-        // }
+            let newPayment = {
+                userId: createdUser.userId,
+                tier: paymentInfo.tier || 'Just Looking',
+                price: paymentInfo.price || 0,
+                purchaseType: paymentInfo.paymentType || 'subscription',
+                paymentFrequency: paymentInfo.paymentFrequency || 'monthly',
+                billingAddress: paymentInfo.billingAddress,
+                billingZipcode: paymentInfo.billingZipcode,
+                shippingAddress: paymentInfo.shippingAddress,
+                shippingZipcode: paymentInfo.shippingZipcode
+            };
 
-        res.status(200).json({
-            email: created.email,
-            // password: created.password,
-            ...payment.dataValues
-        });
-        // // Create a cart for the new user
-        // // interface CartCreationAttributes extends Omit<Cart, 'cartId'> {}
-        // let newCart = await Cart.create({
-        //     userId: created.userId // Use the ID from the created user
-        // }as any);
-    }
-    else {
-        res.status(400).send('Email and password required');
+            let createdPayment = await Payment.create(newPayment, { transaction: t });
+
+            await t.commit();
+
+            res.status(201).json({
+                user: {
+                    userId: createdUser.userId,
+                    email: createdUser.email,
+                    name: createdUser.name,
+                    tier: createdUser.tier,
+                    paymentFrequency: createdUser.paymentFrequency,
+                    price: createdUser.price,
+                },
+                payment: createdPayment
+            });
+        } else {
+            await t.rollback();
+            res.status(400).send('Email and password required');
+        }
+    } catch (error) {
+        await t.rollback();
+        console.error('Error creating user and payment:', error);
+        res.status(500).json({ message: 'Error creating user and payment' });
     }
 }
-
-// export const googleAuth: RequestHandler = async (req, res) => {
-//     try {
-//         const { token } = req.body;
-//         const ticket = await client.verifyIdToken({
-//             idToken: token,
-//             audience: process.env.GOOGLE_CLIENT_ID
-//         });
-//         const payload = ticket.getPayload();
-//         if (!payload) {
-//             return res.status(400).json({ message: 'Invalid token' });
-//         }
-
-//         const { email, name, picture } = payload;
-
-//         let user = await User.findOne({ where: { email } });
-
-//         if (!user) {
-//             // Create new user
-//             user = await User.create({
-//                 userId: generateSnowflakeId(), // Generate a new userId
-//                 email: email ?? '',
-//                 name: name ?? '',
-//                 password: null,
-//                 isGoogleAuth: true,
-//                 imgUrl: picture ?? '',
-//                 tier: 'Just Looking',
-//                 paymentFrequency: 'monthly',
-//                 dateOfBirth: '1900-01-01', // Provide a default date of birth as a string
-//                 // Add other necessary fields with default values
-//             });
-
-//             // Create initial payment record
-//             await Payment.create({
-//                 userId: user.userId,
-//                 tier: 'Just Looking',
-//                 price: 0, 
-//                 paymentType: 'subscription'
-//             } as Payment);
-//         }
-
-//         // Generate JWT
-//         const jwtToken = await signUserToken(user);
-
-//         res.status(200).json({
-//             email: user.email,
-//             userId: user.userId,
-//             tier: user.tier,
-//             paymentFrequency: user.paymentFrequency,
-//             token: jwtToken
-//         });
-//     } catch (error) {
-//         console.error('Error during Google authentication:', error);
-//         res.status(500).json({ message: 'Internal server error' });
-//     }
-// };
-
-// export const loginUser: RequestHandler = async (req, res, next) => {
-//     console.log('Login request body:', req.body);
-
-//     const { email, password } = req.body;
-//     const user = await User.findOne({ where: { email: email.trim() } });
-
-//     if (!user) {
-//         return res.status(401).json({ message: 'User not found' });
-//     }
-
-//     // Look up user by their email
-//     let existingUser: User | null = await User.findOne({ 
-//         where: { email: req.body.email }
-//     });
-
-//     // If user exists, check that password matches
-//     if (existingUser) {
-//         console.log('Stored password:', existingUser.password);
-//         console.log('Entered password:', req.body.password);
-
-//         let passwordsMatch = await comparePasswords(req.body.password, existingUser.password);
-//         console.log('Passwords match:', passwordsMatch);
-//         // If passwords match, create a JWT
-//         if (passwordsMatch) {
-//             let token = await signUserToken(existingUser);
-//             res.status(200).json({ "email": existingUser.email,
-//                                     "userId":existingUser.userId, 
-//                                     "tier":existingUser.tier, 
-//                                     "billing":existingUser.paymentFrequency, 
-//                                     token });
-//         }
-        
-//         if (!passwordsMatch) {
-//             return res.status(401).json({ message: 'Invalid credentials' });
-//         }
-    
-//         const token = await signUserToken(user);
-//         res.status(200).json({ token });
-//     }
-//     else {
-//         res.status(401).json('Invalid email');
-//     }
-// }
 
 export const loginUser: RequestHandler = async (req, res) => {
     try {
@@ -234,70 +150,6 @@ export const loginUser: RequestHandler = async (req, res) => {
     }
 };
 
-// export const loginUser: RequestHandler = async (req, res) => {
-//     try {
-//       const { email, password } = req.body;
-//       const user = await User.findOne({ where: { email: email.trim() } });
-  
-//       if (!user) {
-//         return res.status(401).json({ message: 'User not found' });
-//       }
-  
-//       const passwordsMatch = await comparePasswords(password, user.password);
-//       if (!passwordsMatch) {
-//         return res.status(401).json({ message: 'Invalid credentials' });
-//       }
-  
-//       // Generate access and refresh tokens
-//       const accessToken = jwt.sign({ userId: user.userId }, secret, { expiresIn: '1hr' });
-//       const refreshToken = jwt.sign({ userId: user.userId }, secret, { expiresIn: '30d' });
-  
-//       // Store refresh token in a secure HTTP-only cookie
-//       res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true });
-  
-//       return res.status(200).json({
-//         email: user.email,
-//         userId: user.userId,
-//         tier: user.tier,
-//         billing: user.paymentFrequency,
-//         accessToken,
-//       });
-//     } catch (error) {
-//       console.error('Error during login:', error);
-//       return res.status(500).json({ message: 'Internal server error' });
-//     }
-//   };
-
-// export const loginUser: RequestHandler = async (req, res) => {
-//     try {
-//         const { email, password } = req.body;
-//         const user = await User.findOne({ where: { email: email.trim() } });
-
-//         if (!user) {
-//             return res.status(401).json({ message: 'User not found' });
-//         }
-
-//         const passwordsMatch = await comparePasswords(password, user.password);
-//         if (!passwordsMatch) {
-//             return res.status(401).json({ message: 'Invalid credentials' });
-//         }
-
-//         // Generate access token
-//         const token = await signUserToken(user);
-
-//         return res.status(200).json({
-//             email: user.email,
-//             userId: user.userId,
-//             tier: user.tier,
-//             paymentFrequency: user.paymentFrequency,
-//             token // This is the access token
-//         });
-//     } catch (error) {
-//         console.error('Error during login:', error);
-//         return res.status(500).json({ message: 'Internal server error' });
-//     }
-// };
-
 export const getAllUsers: RequestHandler = async (req, res, next) => {
     let users = await User.findAll();
     res.status(200).json(users);
@@ -325,58 +177,6 @@ export const getUser: RequestHandler = async (req, res, next) => {
         res.status(404).json({});
     }
 }
-
-// export const updateUser: RequestHandler = async (req, res, next) => {
-//     let user: User | null = await verifyToken(req);
-
-//    // console.log(user)
-
-//     if (!user){
-//         return res.status(403).send(); //403 forbidden if user is not logged in 
-//     }
-    
-//     console.log(user);
-//     user.paymentFrequency = req.body.paymentFrequency;
-//     user.price = req.body.price;
-//     user.tier = req.body.tier;
-//     user.save();
-//     res.status(200).json(user);
-
-// }
-// export const updateUser2: RequestHandler = async (req, res, next) => {
-//     let user: User | null = await verifyToken(req);
-
-//    // console.log(user)
-
-//     if (!user){
-//         return res.status(403).send(); //403 forbidden if user is not logged in 
-//     }
-    
-//     let userId = req.params.id;
-//     let newProfile: User = req.body;
-    
-//     console.log(userId)
-//     console.log(newProfile)
-
-//     let userFound = await User.findByPk(userId);
-    
-//     if (userFound && userFound.userId == newProfile.userId
-//         && newProfile.name ) {
-//             if (userFound.userId == user.userId ) 
-//             {    
-//                 await User.update(newProfile, {
-//                     where: { userId: userId }
-//                 });
-//                 res.status(200).json();
-//             }
-//             else{
-//                 res.status(403).send();
-//             }
-//     }
-//     else {
-//         res.status(400).json();
-//     }
-// }
 
 export const updateUser: RequestHandler = async (req, res, next) => {
     let user: User | null = await verifyToken(req);
@@ -490,24 +290,6 @@ export const checkEmail: RequestHandler = async (req, res, next) => {
 }
 
 
-// export const checkUserExists: RequestHandler = async (req, res) => {
-//   const { email } = req.params;
-
-//   if (!email) {
-//     return res.status(400).json({ error: 'Email is required' });
-//   }
-
-//   try {
-//     const user = await User.findOne({ where: { email } });
-//     res.json(!!user); // Returns true if user exists, false otherwise
-//   } catch (error) {
-//     console.error('Error checking user existence:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// };
-
-// ... rest of the file ...
-
 export const checkPassword: RequestHandler = async (req, res, next) => {
     let user: User | null = await verifyToken(req);
 
@@ -569,6 +351,28 @@ export const requestPasswordReset: RequestHandler = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+
+      // Check if the user is a Google OAuth user
+    if (user.isGoogleAuth) {
+        // Send a different email for Google OAuth users
+        const msg = {
+          to: email,
+          from: process.env.SENDGRID_FROM_EMAIL!,
+          templateId: 'd-8610d03ffbc84e4e942f3cdc5521a8ed', 
+          dynamicTemplateData: {
+            name: user.name,
+            loginUrl: `${process.env.FRONTEND_URL}/login` 
+          }
+        };
+  
+        await sgMail.send(msg);
+  
+        return res.status(200).json({ 
+          message: 'Instructions sent for Google account login',
+          isOAuthUser: true
+        });
+    }   
+
         const token = crypto.randomBytes(20).toString('hex');
         user.resetPasswordToken = token;
         user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour from now
@@ -579,10 +383,11 @@ export const requestPasswordReset: RequestHandler = async (req, res) => {
         const msg = {
             to: email,
             from: process.env.SENDGRID_FROM_EMAIL!,
-            subject: 'Password Reset Request',
-            text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`,
-            html: `<p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p><p>Please click on the following link, or paste this into your browser to complete the process:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you did not request this, please ignore this email and your password will remain unchanged.</p>`,
-        };
+            templateId: 'd-ddc19436e7f34a478444b6576038e3f7',
+            dynamicTemplateData: {
+              resetUrl: resetUrl
+            }
+          };
 
         await sgMail.send(msg);
 

@@ -2,6 +2,7 @@ import { InferAttributes, InferCreationAttributes, Model, DataTypes, Sequelize }
 import {Cart} from "./cart";
 import { Snowflake } from "nodejs-snowflake";
 import bcrypt from 'bcrypt';
+import { deleteImageFromFirebase } from '../utils/firebase.utils';
 
 // Initialize Snowflake ID generator
 const uid = new Snowflake({
@@ -90,8 +91,8 @@ export function UserFactory(sequelize: Sequelize): typeof User {
             allowNull: true,
         },
         imgUrl: {
-            type: DataTypes.STRING,
-            allowNull: true
+            type: DataTypes.STRING(2048),
+            allowNull: true,
         },
         price: {
             type: DataTypes.DECIMAL(10, 2),
@@ -136,18 +137,33 @@ export function UserFactory(sequelize: Sequelize): typeof User {
         freezeTableName: true,
         sequelize,
         modelName: 'User',
-        // hooks: {
-        //     beforeCreate: async (user: User) => {
-        //         if (user.password) {
-        //             user.password = await bcrypt.hash(user.password, 10);
-        //         }
-        //     },
-        //     beforeUpdate: async (user: User) => {
-        //         if (user.changed('password')) {
-        //             user.password = await bcrypt.hash(user.password, 10);
-        //         }
-        //     }
-        // }
+        hooks: {
+            beforeDestroy: async (user: User) => {
+                // If implementing image deletion from Firebase
+                if (user.imgUrl) {
+                    try {
+                        // You'll implement this function to delete from Firebase
+                        await deleteImageFromFirebase(user.imgUrl);
+                    } catch (error) {
+                        console.error('Error deleting image from Firebase:', error);
+                        // Decide if you want to throw the error or continue
+                    }
+                }
+            },
+            beforeUpdate: async (user: User) => {
+                // If the image URL is changing, clean up the old one
+                if (user.changed('imgUrl')) {
+                    const oldUrl = user.previous('imgUrl');
+                    if (oldUrl && oldUrl !== user.imgUrl) {
+                        try {
+                            await deleteImageFromFirebase(oldUrl);
+                        } catch (error) {
+                            console.error('Error deleting old image from Firebase:', error);
+                        }
+                    }
+                }
+            }
+        },
     });
 
     return User;

@@ -6,7 +6,7 @@ import util from 'util';
 import morgan from 'morgan';
 import cors from 'cors';
 import { AssociateAllModels } from './models/associations';
-import { OAuth2Client } from 'google-auth-library';
+import { auth as googleAuth, OAuth2Client } from 'google-auth-library';
 import { User } from './models/user';
 import { Payment } from './models/payment';
 import { signUserToken } from './services/auth';
@@ -15,28 +15,101 @@ import { google } from 'googleapis';
 import sgMail from '@sendgrid/mail';
 import crypto from 'crypto';
 import { Op } from 'sequelize';
-
 import userRoutes from './routes/userRoutes';
 import productRoutes from './routes/productRoutes';
 import cartRoutes from './routes/cartRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import imageRoutes from './routes/image.routes';
+import youtubeRoutes from './routes/youtube.routes';
 import path from 'path';
 import fs from 'fs';
 import { profile } from 'console';
+import './config/firebase.config';
+import authRoutes from './routes/auth.routes';
+import storageRoutes from './routes/storage.routes';
+import { auth as firebaseAuth } from './config/firebase.config';
+import { FirebaseError } from 'firebase-admin/lib/utils/error';
+import { getAuth } from 'firebase-admin/auth';
 
-dotenv.config();
+async function handleGoogleSignup(data: any, res: Response, t: any) {
+  const userId = idGenerator.getUniqueID().toString();
+  const email = data.email || '';
+  const name = data.name || '';
+  const picture = data.picture || '';
 
-const execPromise = util.promisify(exec);
+  try {
+    // Check if a Firebase user with the email already exists
+    let firebaseUser;
+    try {
+      firebaseUser = await firebaseAuth.getUserByEmail(email);
+      console.log('Firebase user already exists:', firebaseUser.uid);
+    } catch (error) {
+      if (isFirebaseError(error) && error.code === 'auth/user-not-found') {
+        // Create Firebase user if not found
+        firebaseUser = await firebaseAuth.createUser({
+          uid: userId,
+          email: email,
+          emailVerified: true,
+          displayName: name,
+          photoURL: picture,
+        });
+        console.log('Created new Firebase user with ID:', firebaseUser.uid);
+      } else {
+        throw error;
+      }
+    }
 
-const app = express();
+    // Set custom claims and create a database user
+    await firebaseAuth.setCustomUserClaims(firebaseUser.uid, {
+      userId: firebaseUser.uid,
+      email: email,
+      tier: 'Just Looking',
+    });
 
-// Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+    const newUser = await User.create(
+      {
+        userId: firebaseUser.uid,
+        name: name,
+        email: email,
+        imgUrl: picture,
+        isGoogleAuth: true,
+        tier: 'Just Looking',
+        paymentFrequency: 'monthly',
+        dateOfBirth: '01/01/1990',
+      },
+      { transaction: t }
+    );
+
+    const token = await signUserToken(newUser);
+
+    return sendResponse(res, {
+      type: 'GOOGLE_AUTH_SUCCESS',
+      payload: {
+        token,
+        user: {
+          userId: newUser.userId,
+          email: newUser.email,
+          name: newUser.name,
+          tier: newUser.tier,
+          billing: newUser.paymentFrequency,
+          imgUrl: newUser.imgUrl,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error handling Google signup:', error);
+    throw error;
+  }
+}
+
+// import { FirebaseError } from 'firebase-admin';
+// import { FirebaseError } from 'firebase-admin/lib/utils/error';
+
 
 // Serve static files from the 'public' directory
-const publicPath = path.join(__dirname, '..', 'public');
-console.log('Static files directory:', publicPath);
-app.use(express.static(publicPath));
+// const publicPath = path.join(__dirname, '..', 'public');
+// console.log('Static files directory:', publicPath);
+// app.use(express.static(publicPath));
 
 
 // app.get('/debug-list-images', (req: Request, res: Response) => {
@@ -53,41 +126,150 @@ app.use(express.static(publicPath));
 //   });
 // });
 
-// CORS configuration
-app.use(cors({
-    origin: ['http://localhost:4200'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+
+dotenv.config();
+
+const execPromise = util.promisify(exec);
+
+const app = express();
+
+// Initialize SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-    console.log(`${req.method} ${req.url}`, req.body);
-    next();
-  });
+// app.use(cors({
+//   origin: ['http://localhost:4200', 'https://hughjackedman.com'],
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true
+// }));
 
-// Routes
+
+// // 1. Essential middleware (should be at the top)
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use(morgan('dev'));
+
+// 2. CORS configuration
+const allowedOrigins = [
+  'http://localhost:4200',
+  'https://hughjackedman.com'
+];
+
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma',
+    'X-Auth-Token'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  credentials: true,
+  optionsSuccessStatus: 204,
+  maxAge: 3600
+};
+
+// Apply CORS
+app.use(cors(corsOptions));
+
+// 3. Security and Headers Middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Special handling for staging routes
+  if (req.path.includes('/staging/')) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+
+  next();
+});
+
+// 4. Static files (after security headers)
+const publicPath = path.join(__dirname, '..', 'public');
+app.use(express.static(publicPath));
+
+// 5. Logging Middleware (consolidated)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log('Incoming request:', {
+    method: req.method,
+    url: req.url,
+    params: req.params,
+    query: req.query,
+    headers: {
+      origin: req.headers.origin,
+      authorization: req.headers.authorization ? '[PRESENT]' : '[MISSING]'
+    }
+  });
+  next();
+});
+
+// 6. Error Handlers
+const corsErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      error: 'CORS origin not allowed',
+      message: 'Origin not allowed by CORS policy'
+    });
+  }
+  next(err);
+};
+
+const authErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err.message === 'No Bearer token found in authorization header') {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+      message: 'No valid authentication token provided'
+    });
+  }
+  next(err);
+};
+
+app.use(corsErrorHandler);
+app.use(authErrorHandler);
+
+// 7. Routes (after all middleware)
+
 app.use('/api/users', userRoutes);
+app.use('/api/users', authRoutes);
+
+app.use('/api/storage', storageRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/images', imageRoutes);
+app.use('/api/youtube', youtubeRoutes);
 
 
-// Initialize Snowflake (you might want to do this once at the top of your file)
-const idGenerator = new Snowflake({
-    custom_epoch: 1725148800000,
-    instance_id: 1
-});
-
-const client = new OAuth2Client({
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    redirectUri: `${process.env.SERVER_URL}/api/auth/google/callback`
-  });
+// app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+//   console.error('Global error handler:', err);
+//   res.status(500).json({
+//     success: false,
+//     message: 'Internal server error',
+//     error: process.env.NODE_ENV === 'development' ? err.message : undefined
+//   });
+// });
 
 app.get('/api/auth/google', (req: Request, res: Response) => {
   console.log('Google OAuth initiation route hit');
@@ -105,6 +287,7 @@ app.get('/api/auth/google', (req: Request, res: Response) => {
   res.redirect(authUrl);
 });
 
+// Google OAuth callback route
 app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
   console.log('Google OAuth callback route hit');
   const { code, state } = req.query;
@@ -118,6 +301,7 @@ app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
   }
 
   try {
+    // Exchange authorization code for access token
     const { tokens } = await client.getToken(code as string);
     client.setCredentials(tokens);
 
@@ -126,6 +310,7 @@ app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
 
     console.log('Received user data:', data);
 
+    // Start a transaction to handle database actions atomically
     await db.transaction(async (t) => {
       const existingUser = await User.findOne({
         where: { email: data.email || '' },
@@ -133,40 +318,17 @@ app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
       });
 
       if (state === 'signup') {
+        // Use handleGoogleSignup function if the user is signing up
         if (existingUser) {
           return sendResponse(res, {
             type: 'GOOGLE_AUTH_ERROR',
-            error: 'User already exists. Please Login instead.'
+            error: 'User already exists. Please log in instead.'
           });
         }
 
-        const newUser = await User.create({
-          userId: idGenerator.getUniqueID().toString(),
-          name: data.name || '',
-          email: data.email || '',
-          imgUrl: data.picture || '',
-          isGoogleAuth: true,
-          tier: 'Just Looking',
-          paymentFrequency: 'monthly',
-          dateOfBirth: '01/01/1990',
-        }, { transaction: t });
+        // Call handleGoogleSignup for new user signup
+        await handleGoogleSignup(data, res, t);
 
-        const token = await signUserToken(newUser);
-
-        return sendResponse(res, {
-          type: 'GOOGLE_AUTH_SUCCESS',
-          payload: {
-            token: token,
-            user: {
-              userId: newUser.userId,
-              email: newUser.email,
-              name: newUser.name,
-              tier: newUser.tier,
-              billing: newUser.paymentFrequency,
-              imgUrl: newUser.imgUrl,
-            }
-          }
-        });
       } else { // state === 'login'
         if (!existingUser) {
           return sendResponse(res, {
@@ -175,30 +337,62 @@ app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
           });
         }
 
-        const token = await signUserToken(existingUser);
-
-        return sendResponse(res, {
-          type: 'GOOGLE_AUTH_SUCCESS',
-          payload: {
-            token: token,
-            user: {
-              userId: existingUser.userId,
-              email: existingUser.email,
-              name: existingUser.name,
-              tier: existingUser.tier,
-              billing: existingUser.paymentFrequency,
-              imgUrl: existingUser.imgUrl,
-              price: existingUser.price,
-              weight: existingUser.weight,
-              height: existingUser.height,
-              gender: existingUser.gender,
-              dateOfBirth: existingUser.dateOfBirth,
-              goals: existingUser.goals,
-              profilePictureSettings: existingUser.profilePictureSettings,
-              isGoogleAuth: existingUser.isGoogleAuth
+        // Existing user login logic
+        try {
+          // Ensure Firebase user exists with correct ID
+          try {
+            await firebaseAuth.getUser(existingUser.userId);
+          } catch (error) {
+            if (isFirebaseError(error) && error.code === 'auth/user-not-found') {
+              // Create missing Firebase user
+              await firebaseAuth.createUser({
+                uid: existingUser.userId,
+                email: existingUser.email,
+                emailVerified: true,
+                displayName: existingUser.name,
+                photoURL: existingUser.imgUrl
+              });
+              console.log('Created missing Firebase user for existing user:', existingUser.userId);
+            } else {
+              throw error;
             }
           }
-        });
+
+          // Update custom claims
+          await firebaseAuth.setCustomUserClaims(existingUser.userId, {
+            userId: existingUser.userId,
+            email: existingUser.email,
+            tier: existingUser.tier
+          });
+
+          const token = await signUserToken(existingUser);
+
+          return sendResponse(res, {
+            type: 'GOOGLE_AUTH_SUCCESS',
+            payload: {
+              token,
+              user: {
+                userId: existingUser.userId,
+                email: existingUser.email,
+                name: existingUser.name,
+                tier: existingUser.tier,
+                billing: existingUser.paymentFrequency,
+                imgUrl: existingUser.imgUrl,
+                price: existingUser.price,
+                weight: existingUser.weight,
+                height: existingUser.height,
+                gender: existingUser.gender,
+                dateOfBirth: existingUser.dateOfBirth,
+                goals: existingUser.goals,
+                profilePictureSettings: existingUser.profilePictureSettings,
+                isGoogleAuth: existingUser.isGoogleAuth
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Error during login:', error);
+          throw error;
+        }
       }
     });
   } catch (error) {
@@ -210,139 +404,324 @@ app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
   }
 });
 
-// New route for password reset request
-app.post('/api/reset-password', async (req: Request, res: Response) => {
-  const { email } = req.body;
 
-  try {
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+app.use((req: Request, res: Response, next: NextFunction) => {
+    console.log(`${req.method} ${req.url}`, req.body);
+    next();
+  });
 
-    const token = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour from now
-    await user.save();
-
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
-
-    const logoPath = path.join(__dirname, '..', 'public', 'images', 'ProjectLogo.png');
-    const logoContent = fs.readFileSync(logoPath).toString('base64');
-
-    const msg: sgMail.MailDataRequired = {
-      to: email,
-      from: process.env.SENDGRID_FROM_EMAIL!,
-      subject: 'Password Reset Request',
-      html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password</title>
-    <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #c7ff20;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #c7ff20;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .logo {
-            max-width: 120px;
-            height: auto;
-        }
-        h1 {
-            font-size: 2rem;
-            margin-top: 3rem;
-            margin-bottom: 3rem;
-        }
-        p {
-            margin-bottom: 3rem;
-        }
-        .reset-button {
-            display: inline-block;
-            width: 20rem;
-            height: 2.5rem;
-            line-height: 2.5rem;
-            background-color: #ffffff;
-            color: #000000;
-            text-decoration: none;
-            text-align: center;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-        .footer {
-            margin-top: 3rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <img src="cid:logo" alt="Hugh Jackedman Logo" class="logo">
-        <h1>Reset Password</h1>
-        <p>A Reset Password request was sent and this is your reset link. Please disregard if you are unaware of this request.</p>
-        <a href="${resetUrl}" class="reset-button">Reset</a>
-        <div class="footer">
-            <p>Regards,<br>The Hugh Jackedman Team</p>
-        </div>
-    </div>
-</body>
-</html>`,
-      attachments: [
-        {
-          filename: 'ProjectLogo.png',
-          type: 'image/png',
-          content: logoContent,
-          disposition: 'inline',
-          contentId: 'logo'
-        }
-      ]
-    };
-
-    await sgMail.send(msg);
-
-    res.status(200).json({ message: 'Reset password instructions sent' });
-  } catch (error) {
-    console.error('Error in reset password:', error);
-    res.status(500).json({ message: 'Error in reset password process' });
-  }
+// Log all incoming requests
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log('Incoming request:', {
+    method: req.method,
+    url: req.url,
+    params: req.params,
+    query: req.query
+  });
+  next();
 });
 
-// New route to handle password reset
-app.post('/api/reset-password/:token', async (req: Request, res: Response) => {
-  const { token } = req.params;
-  const { password } = req.body;
-
-  try {
-    const user = await User.findOne({
-      where: {
-        resetPasswordToken: token,
-        resetPasswordExpires: { [Op.gt]: new Date() }
-      }
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'Password reset token is invalid or has expired' });
-    }
-
-    user.password = password;
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
-    await user.save();
-
-    res.status(200).json({ message: 'Password has been reset' });
-  } catch (error) {
-    console.error('Error in reset password:', error);
-    res.status(500).json({ message: 'Error in reset password process' });
-  }
+// Error handler
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
+
+interface CustomError extends Error {
+  status?: number;
+  code?: string;
+}
+
+// And use it in another error handler for specific cases:
+app.use((err: CustomError, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({ 
+    error: err.message || 'Internal server error',
+    code: err.code
+  });
+});
+
+// Initialize Snowflake (you might want to do this once at the top of your file)
+const idGenerator = new Snowflake({
+    custom_epoch: 1725148800000,
+    instance_id: 1
+});
+
+const client = new OAuth2Client({
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: `${process.env.SERVER_URL}/api/auth/google/callback`
+  });
+
+
+
+// app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
+//   console.log('Google OAuth callback route hit');
+//   const { code, state } = req.query;
+  
+//   if (!code || (state !== 'signup' && state !== 'login')) {
+//     console.error('Missing authorization code or invalid state');
+//     return sendResponse(res, {
+//       type: 'GOOGLE_AUTH_ERROR',
+//       error: 'Missing authorization code or invalid state'
+//     });
+//   }
+
+//   try {
+//     const { tokens } = await client.getToken(code as string);
+//     client.setCredentials(tokens);
+
+//     const oauth2 = google.oauth2({ version: 'v2', auth: client });
+//     const { data } = await oauth2.userinfo.get();
+
+//     console.log('Received user data:', data);
+
+//     await db.transaction(async (t) => {
+//       const existingUser = await User.findOne({
+//         where: { email: data.email || '' },
+//         transaction: t
+//       });
+
+//       if (state === 'signup') {
+//         if (existingUser) {
+//           return sendResponse(res, {
+//             type: 'GOOGLE_AUTH_ERROR',
+//             error: 'User already exists. Please Login instead.'
+//           });
+//         }
+
+//         const newUser = await User.create({
+//           userId: idGenerator.getUniqueID().toString(),
+//           name: data.name || '',
+//           email: data.email || '',
+//           imgUrl: data.picture || '',
+//           isGoogleAuth: true,
+//           tier: 'Just Looking',
+//           paymentFrequency: 'monthly',
+//           dateOfBirth: '01/01/1990',
+//         }, { transaction: t });
+
+//         const token = await signUserToken(newUser);
+
+//         return sendResponse(res, {
+//           type: 'GOOGLE_AUTH_SUCCESS',
+//           payload: {
+//             token: token,
+//             user: {
+//               userId: newUser.userId,
+//               email: newUser.email,
+//               name: newUser.name,
+//               tier: newUser.tier,
+//               billing: newUser.paymentFrequency,
+//               imgUrl: newUser.imgUrl,
+//             }
+//           }
+//         });
+//       } else { // state === 'login'
+//         if (!existingUser) {
+//           return sendResponse(res, {
+//             type: 'GOOGLE_AUTH_ERROR',
+//             error: 'User does not exist. Please sign up first.'
+//           });
+//         }
+
+//         const token = await signUserToken(existingUser);
+
+//         return sendResponse(res, {
+//           type: 'GOOGLE_AUTH_SUCCESS',
+//           payload: {
+//             token: token,
+//             user: {
+//               userId: existingUser.userId,
+//               email: existingUser.email,
+//               name: existingUser.name,
+//               tier: existingUser.tier,
+//               billing: existingUser.paymentFrequency,
+//               imgUrl: existingUser.imgUrl,
+//               price: existingUser.price,
+//               weight: existingUser.weight,
+//               height: existingUser.height,
+//               gender: existingUser.gender,
+//               dateOfBirth: existingUser.dateOfBirth,
+//               goals: existingUser.goals,
+//               profilePictureSettings: existingUser.profilePictureSettings,
+//               isGoogleAuth: existingUser.isGoogleAuth
+//             }
+//           }
+//         });
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Detailed error during Google authentication:', error);
+//     return sendResponse(res, {
+//       type: 'GOOGLE_AUTH_ERROR',
+//       error: 'Authentication failed'
+//     });
+//   }
+// });
+
+
+// app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
+//   console.log('Google OAuth callback route hit');
+//   const { code, state } = req.query;
+  
+//   if (!code || (state !== 'signup' && state !== 'login')) {
+//     console.error('Missing authorization code or invalid state');
+//     return sendResponse(res, {
+//       type: 'GOOGLE_AUTH_ERROR',
+//       error: 'Missing authorization code or invalid state'
+//     });
+//   }
+
+//   try {
+//     const { tokens } = await client.getToken(code as string);
+//     client.setCredentials(tokens);
+
+//     const oauth2 = google.oauth2({ version: 'v2', auth: client });
+//     const { data } = await oauth2.userinfo.get();
+
+//     console.log('Received user data:', data);
+
+//     await db.transaction(async (t) => {
+//       const existingUser = await User.findOne({
+//         where: { email: data.email || '' },
+//         transaction: t
+//       });
+
+//       if (state === 'signup') {
+//         if (existingUser) {
+//           return sendResponse(res, {
+//             type: 'GOOGLE_AUTH_ERROR',
+//             error: 'User already exists. Please Login instead.'
+//           });
+//         }
+
+//         const userId = idGenerator.getUniqueID().toString();
+
+//         try {
+//           // Create Firebase user first
+//           await firebaseAuth.createUser({
+//             uid: userId,
+//             email: data.email || '',
+//             emailVerified: true,
+//             displayName: data.name || '',
+//             photoURL: data.picture || ''
+//           });
+//           console.log('Created Firebase user with ID:', userId);
+
+//           // Create database user
+//           const newUser = await User.create({
+//             userId,
+//             name: data.name || '',
+//             email: data.email || '',
+//             imgUrl: data.picture || '',
+//             isGoogleAuth: true,
+//             tier: 'Just Looking',
+//             paymentFrequency: 'monthly',
+//             dateOfBirth: '01/01/1990',
+//           }, { transaction: t });
+
+//           // Set custom claims
+//           await firebaseAuth.setCustomUserClaims(userId, {
+//             userId,
+//             email: newUser.email,
+//             tier: newUser.tier
+//           });
+
+//           const token = await signUserToken(newUser);
+
+//           return sendResponse(res, {
+//             type: 'GOOGLE_AUTH_SUCCESS',
+//             payload: {
+//               token,
+//               user: {
+//                 userId: newUser.userId,
+//                 email: newUser.email,
+//                 name: newUser.name,
+//                 tier: newUser.tier,
+//                 billing: newUser.paymentFrequency,
+//                 imgUrl: newUser.imgUrl,
+//               }
+//             }
+//           });
+//         } catch (error) {
+//           console.error('Error creating new user:', error);
+//           throw error;
+//         }
+//       } else { // state === 'login'
+//         if (!existingUser) {
+//           return sendResponse(res, {
+//             type: 'GOOGLE_AUTH_ERROR',
+//             error: 'User does not exist. Please sign up first.'
+//           });
+//         }
+
+//         try {
+//           // Ensure Firebase user exists with correct ID
+//           try {
+//             await firebaseAuth.getUser(existingUser.userId);
+//           } catch (error) {
+//             if (isFirebaseError(error) && error.code === 'auth/user-not-found') {
+//               // Create missing Firebase user
+//               await firebaseAuth.createUser({
+//                 uid: existingUser.userId,
+//                 email: existingUser.email,
+//                 emailVerified: true,
+//                 displayName: existingUser.name,
+//                 photoURL: existingUser.imgUrl
+//               });
+//               console.log('Created missing Firebase user for existing user:', existingUser.userId);
+//             } else {
+//               throw error;
+//             }
+//           }
+
+//           // Update custom claims
+//           await firebaseAuth.setCustomUserClaims(existingUser.userId, {
+//             userId: existingUser.userId,
+//             email: existingUser.email,
+//             tier: existingUser.tier
+//           });
+
+//           const token = await signUserToken(existingUser);
+
+//           return sendResponse(res, {
+//             type: 'GOOGLE_AUTH_SUCCESS',
+//             payload: {
+//               token,
+//               user: {
+//                 userId: existingUser.userId,
+//                 email: existingUser.email,
+//                 name: existingUser.name,
+//                 tier: existingUser.tier,
+//                 billing: existingUser.paymentFrequency,
+//                 imgUrl: existingUser.imgUrl,
+//                 price: existingUser.price,
+//                 weight: existingUser.weight,
+//                 height: existingUser.height,
+//                 gender: existingUser.gender,
+//                 dateOfBirth: existingUser.dateOfBirth,
+//                 goals: existingUser.goals,
+//                 profilePictureSettings: existingUser.profilePictureSettings,
+//                 isGoogleAuth: existingUser.isGoogleAuth
+//               }
+//             }
+//           });
+//         } catch (error) {
+//           console.error('Error during login:', error);
+//           throw error;
+//         }
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Detailed error during Google authentication:', error);
+//     return sendResponse(res, {
+//       type: 'GOOGLE_AUTH_ERROR',
+//       error: 'Authentication failed'
+//     });
+//   }
+// });
+
 
 function sendResponse(res: Response, data: any) {
   console.log('Backend: Preparing to send response:', data);
@@ -470,6 +849,13 @@ async function runCommand(command: string) {
     }
 }
 
+function isFirebaseError(error: unknown): error is FirebaseError {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    typeof (error as FirebaseError).code === 'string'
+  );
+}
 
 
 // Initialize database and start the server
