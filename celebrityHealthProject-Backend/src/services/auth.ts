@@ -241,18 +241,82 @@ export const comparePasswords = async (
     return await bcrypt.compare(plainTextPassword, hashPassword);
 };
 
+// export const signUserToken = async (user: User): Promise<string> => {
+//     const token = jwt.sign(
+//         { userId: user.userId } as JWTPayload,
+//         secret,
+//         { 
+//             expiresIn: '24h',
+//             algorithm: 'HS256'  // Explicitly specify the algorithm
+//         }
+//     );
+    
+//     return token;
+// }
+
+// export const signUserToken = async (user: User): Promise<string> => {
+//     const now = Math.floor(Date.now() / 1000);
+//     console.log('Current time in signUserToken:', new Date(), 'UNIX timestamp:', now);
+
+//     const token = jwt.sign(
+//         { userId: user.userId },
+//         secret,
+//         { 
+//             expiresIn: '24h', 
+//             algorithm: 'HS256'
+//         }
+//     );
+    
+//     return token;
+// }
+
+// export const signUserToken = async (user: User): Promise<string> => {
+//     const now = Math.floor(Date.now() / 1000);
+// const token = jwt.sign(
+//     { userId: user.userId, iat: now, exp: now + 86400 }, // explicit iat and exp
+//     secret,
+//     {
+//         algorithm: 'HS256'
+//     }
+// );
+
+// console.log('Token generated with explicit iat and exp times:', {
+//     iat: new Date(now * 1000).toISOString(),
+//     exp: new Date((now + 86400) * 1000).toISOString(),
+// });
+    
+//     return token;
+// }
+
+// In your auth.ts
 export const signUserToken = async (user: User): Promise<string> => {
+    if (!secret) {
+        throw new Error('JWT_SECRET is not defined');
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    
     const token = jwt.sign(
-        { userId: user.userId } as JWTPayload,
+        { 
+            userId: user.userId,
+            iat: now,
+            exp: now + (24 * 60 * 60) // 24 hours
+        },
         secret,
         { 
-            expiresIn: '1hr',
-            algorithm: 'HS256'  // Explicitly specify the algorithm
+            algorithm: 'HS256'
         }
     );
-    
+
+    // Log token generation (remove in production)
+    console.log('Token generated:', {
+        userId: user.userId,
+        iat: new Date(now * 1000).toISOString(),
+        exp: new Date((now + 24 * 60 * 60) * 1000).toISOString()
+    });
+
     return token;
-}
+};
 
 export const verifyToken = async (req: Request): Promise<User | null> => {
     try {
@@ -302,4 +366,24 @@ function isJWTPayload(payload: any): payload is JWTPayload {
     return typeof payload === 'object' && 
            'userId' in payload && 
            typeof payload.userId === 'string';
+}
+
+export const verifyTokenString = async (token: string): Promise<JWTPayload | null> => {
+    try {
+        const decoded = jwt.verify(token, secret, {
+            algorithms: ['HS256']
+        }) as JWTPayload;
+        
+        if (!decoded.userId) {
+            console.error('Token payload missing userId');
+            return null;
+        }
+
+        console.log('Token string verified successfully for userId:', decoded.userId);
+        return decoded;
+        
+    } catch (error) {
+        console.error('Token string verification failed:', error);
+        return null;
+    }
 }

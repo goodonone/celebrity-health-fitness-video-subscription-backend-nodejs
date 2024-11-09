@@ -250,14 +250,26 @@ app.use(corsErrorHandler);
 app.use(authErrorHandler);
 
 // 7. Routes (after all middleware)
+
 app.use('/api/users', userRoutes);
+app.use('/api/users', authRoutes);
+
+app.use('/api/storage', storageRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/youtube', youtubeRoutes);
-app.use('/api/users', authRoutes);
-app.use('/api', storageRoutes);
+
+
+// app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+//   console.error('Global error handler:', err);
+//   res.status(500).json({
+//     success: false,
+//     message: 'Internal server error',
+//     error: process.env.NODE_ENV === 'development' ? err.message : undefined
+//   });
+// });
 
 app.get('/api/auth/google', (req: Request, res: Response) => {
   console.log('Google OAuth initiation route hit');

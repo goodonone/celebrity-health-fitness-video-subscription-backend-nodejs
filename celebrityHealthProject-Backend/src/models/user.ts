@@ -93,9 +93,6 @@ export function UserFactory(sequelize: Sequelize): typeof User {
         imgUrl: {
             type: DataTypes.STRING(2048),
             allowNull: true,
-            validate: {
-                isUrl: true 
-            }
         },
         price: {
             type: DataTypes.DECIMAL(10, 2),
