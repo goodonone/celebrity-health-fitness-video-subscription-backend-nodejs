@@ -289,6 +289,35 @@ export const comparePasswords = async (
 // }
 
 // In your auth.ts
+// export const signUserToken = async (user: User): Promise<string> => {
+//     if (!secret) {
+//         throw new Error('JWT_SECRET is not defined');
+//     }
+
+//     const now = Math.floor(Date.now() / 1000);
+    
+//     const token = jwt.sign(
+//         { 
+//             userId: user.userId,
+//             iat: now,
+//             exp: now + (24 * 60 * 60) // 24 hours
+//         },
+//         secret,
+//         { 
+//             algorithm: 'HS256'
+//         }
+//     );
+
+//     // Log token generation (remove in production)
+//     console.log('Token generated:', {
+//         userId: user.userId,
+//         iat: new Date(now * 1000).toISOString(),
+//         exp: new Date((now + 24 * 60 * 60) * 1000).toISOString()
+//     });
+
+//     return token;
+// };
+
 export const signUserToken = async (user: User): Promise<string> => {
     if (!secret) {
         throw new Error('JWT_SECRET is not defined');
@@ -300,15 +329,16 @@ export const signUserToken = async (user: User): Promise<string> => {
         { 
             userId: user.userId,
             iat: now,
-            exp: now + (24 * 60 * 60) // 24 hours
+            exp: now + (24 * 60 * 60) // 24 hours from now
         },
         secret,
         { 
-            algorithm: 'HS256'
+            algorithm: 'HS256',
+            noTimestamp: false // explicitly include timestamps
         }
     );
 
-    // Log token generation (remove in production)
+    // Log token generation for debugging
     console.log('Token generated:', {
         userId: user.userId,
         iat: new Date(now * 1000).toISOString(),
@@ -362,28 +392,86 @@ export const verifyToken = async (req: Request): Promise<User | null> => {
 }
 
 // Type guard to check if an object is a valid JWTPayload
+// function isJWTPayload(payload: any): payload is JWTPayload {
+//     return typeof payload === 'object' && 
+//            'userId' in payload && 
+//            typeof payload.userId === 'string';
+// }
+
 function isJWTPayload(payload: any): payload is JWTPayload {
     return typeof payload === 'object' && 
+           payload !== null &&
            'userId' in payload && 
-           typeof payload.userId === 'string';
+           typeof payload.userId === 'string' &&
+           (!('iat' in payload) || typeof payload.iat === 'number') &&
+           (!('exp' in payload) || typeof payload.exp === 'number');
 }
 
+// export const verifyTokenString = async (token: string): Promise<JWTPayload | null> => {
+//     try {
+//         const decoded = jwt.verify(token, secret, {
+//             algorithms: ['HS256']
+//         }) as JWTPayload;
+        
+//         if (!decoded.userId) {
+//             console.error('Token payload missing userId');
+//             return null;
+//         }
+
+//         console.log('Token string verified successfully for userId:', decoded.userId);
+//         return decoded;
+        
+//     } catch (error) {
+//         console.error('Token string verification failed:', error);
+//         return null;
+//     }
+// }
+
 export const verifyTokenString = async (token: string): Promise<JWTPayload | null> => {
+    if (!secret) {
+        console.error('JWT_SECRET is not defined');
+        return null;
+    }
+
     try {
+        // Verify token with explicit algorithm and options
         const decoded = jwt.verify(token, secret, {
-            algorithms: ['HS256']
+            algorithms: ['HS256'],
+            clockTolerance: 30, // 30 seconds of clock tolerance
+            ignoreExpiration: false // Make sure we check expiration
         }) as JWTPayload;
         
-        if (!decoded.userId) {
-            console.error('Token payload missing userId');
+        if (!isJWTPayload(decoded)) {
+            console.error('Invalid token payload structure');
             return null;
         }
 
-        console.log('Token string verified successfully for userId:', decoded.userId);
+        // Verify the token hasn't expired
+        const now = Math.floor(Date.now() / 1000);
+        if (decoded.exp && decoded.exp < now) {
+            console.error('Token has expired');
+            return null;
+        }
+
+        // Log successful verification
+        console.log('Token verification successful:', {
+            userId: decoded.userId,
+            iat: decoded.iat ? new Date(decoded.iat * 1000).toISOString() : undefined,
+            exp: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : undefined
+        });
+
         return decoded;
         
     } catch (error) {
-        console.error('Token string verification failed:', error);
+        if (error instanceof jwt.TokenExpiredError) {
+            console.error('Token has expired:', error.expiredAt);
+        } else if (error instanceof jwt.JsonWebTokenError) {
+            console.error('Invalid token:', error.message);
+        } else {
+            console.error('Token verification failed:', error);
+        }
         return null;
     }
 }
+
+// Update isJWTPayload to be more strict

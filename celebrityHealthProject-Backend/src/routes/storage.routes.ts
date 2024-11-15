@@ -1,8 +1,10 @@
 import { Router } from 'express';
-import { getImage, moveImage, getStorageFile } from '../controllers/storage.controller';
+import { getImage, moveImage, getStorageFile, cleanupStagedFiles } from '../controllers/storage.controller';
 import { authMiddleware, firebaseAuthMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
+
+router.delete('/storage/cleanup/:userId', authMiddleware, cleanupStagedFiles);
 
 router.post('/storage/move/:userId', authMiddleware, moveImage);
 

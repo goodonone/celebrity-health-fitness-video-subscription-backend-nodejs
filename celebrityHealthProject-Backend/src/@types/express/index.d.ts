@@ -38,6 +38,7 @@ declare global {
         goals?: string;
         dateOfBirth?: string;
         imgUrl?: string;
+        profilePictureSettings?: any;
         [key: string]: any;
       };
       file?: multer.File;
